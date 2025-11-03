@@ -1,4 +1,6 @@
 
+import { Link } from "react-router-dom";
+
 const Hero = () => {
   return (
     <div className="bg-gray-200 p-4 sm:p-6 md:p-12 m-4 sm:m-6 md:m-12 rounded-lg shadow-lg relative flex flex-col md:flex-row items-center">
@@ -14,9 +16,12 @@ const Hero = () => {
             It's absolutely <span className="text-green-500">FREE 🎉</span>
         </h2>
 
-        <button className="bg-yellow-500 text-white font-semibold px-4 sm:px-6 py-2 sm:py-2.5 rounded hover:bg-yellow-600 transition">
+        <Link 
+          className="bg-yellow-500 text-white font-semibold px-4 sm:px-6 py-2 sm:py-2.5 rounded hover:bg-yellow-600 transition"
+          to='/ShareSpend'
+        >
           Start Now
-        </button>
+        </Link>
       </div>
 
       {/* Image */}
