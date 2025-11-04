@@ -1,8 +1,8 @@
 
-import NavBar from "./NavBar";
+import NavBar from "../../NavBar/NavBar";
 import { Link } from "react-router-dom";
 
-const Header = () => {
+const Header = ({NavBarComponent= NavBar}) => {
   return (
     <header className="flex flex-col md:flex-row items-center justify-between p-4 bg-blue-600 text-white">
       {/* Logo + Brand */}
@@ -21,8 +21,8 @@ const Header = () => {
         </h2>
       </Link>
 
-      {/* Navigation */}
-      <NavBar />
+       {/* Dynamic Navigation */}
+      <NavBarComponent />
     </header>
   )
 }
