@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes , Route , useLocation} from 'react-rout
 import { useEffect } from 'react';
 import HomePage from '../homepage/HomePage';
 import ShareSpendPage from '../ShareSpendPage/ShareSpendPage';
+import LogInPage from '../LogPages/LogInPage';
+import MainPage from '../MainPage/MainPage';
 import Error from '../ErrorPages/Error';
 
 const TitleUpdater = () => {
@@ -13,11 +15,14 @@ const TitleUpdater = () => {
       case '/':
         document.title = "HomePage | Share Spend";
         break;
-      case '/ShareSpend':
+      case '/sharespend':
         document.title = "ShareSpend Page | Share Spend";
         break;
-      case '/LogInPage':
-        document.title = "ShareSpend Page | Share Spend";
+      case '/loginpage':
+        document.title = "Log In Page | Share Spend";
+        break;
+      case '/mainpage':
+        document.title = "Main Page | Share Spend";
         break;
       default:
         document.title = "Error Page| Share Spend";
@@ -33,7 +38,10 @@ const AppRouter = () => {
       <TitleUpdater/>
           <Routes>
               <Route path='/' element={<HomePage/>}/>
-              <Route path='/shareSpend' element={<ShareSpendPage/>}/>
+              <Route path='/sharespend' element={<ShareSpendPage/>}/>
+              <Route path='/loginpage' element={<LogInPage/>}/>
+              <Route path='/mainpage' element={<MainPage/>}/>
+              <Route path='/LogOutPage' element={<ShareSpendPage/>}/>
               <Route path='*' element={<Error/>}/>
           </Routes>
     </Router>
