@@ -1,10 +1,70 @@
 
+
 const MainData = () => {
   return (
     <>   
         <div className="container mx-auto p-6">
+
+            {/* Top section for details of group */}
+            <div className="mt-8 bg-white p-6 rounded-lg shadow-2xl">
+                
+                {/* Header title with icon */}
+                <div className="flex items-center justify-between border-b border-gray-200 pb-3 mb-4">
+                    <h1 className="text-2xl font-bold text-gray-800">Group Details</h1>
+                    
+                    {/* Static arrow button */}
+                    <button className="text-gray-500 text-lg hover:text-gray-700 transition">
+                        ↑
+                    </button>
+                </div>
+
+                {/* Group details grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-gray-700">
+                    <div>
+                        <h1 className="font-semibold">👤 Name of User:</h1>
+                        <p className="text-gray-600">John Doe</p>
+                    </div>
+
+                    <div>
+                        <h1 className="font-semibold">👥 Group:</h1>
+                        <p className="text-gray-600">10 People</p>
+                    </div>
+
+                    <div>
+                        <h1 className="font-semibold">🏷️ Nickname:</h1>
+                        <p className="text-gray-600">"Team Alpha"</p>
+                    </div>
+
+                    <div>
+                        <h1 className="font-semibold">📅 Current Date:</h1>
+                        <p className="text-gray-600">{new Date().toLocaleDateString()}</p>
+                    </div>
+
+                    <div>
+                        <h1 className="font-semibold">💰 Total Paid:</h1>
+                        <p className="text-gray-600">$0.00</p>
+                    </div>
+
+                    <div className="col-span-2 mt-4 flex space-x-2 justify-end">
+
+                        <button className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                            Reset All
+                        </button>
+
+                        <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
+                            Change
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div className="container mx-auto p-6">
+
             {/* Main middle section with two columns */}
             <div className="flex flex-col md:flex-row gap-8">
+
                 {/* Left div - Add Expenses */}
                 <div className="md:w-1/2 bg-white p-6 rounded-lg shadow-2xl">
                     <h1 className="text-xl font-bold mb-4">
@@ -50,30 +110,98 @@ const MainData = () => {
                             placeholder="Enter category"
                         />
                     </div>
+
+                    <button className="flex ml-auto bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
+                        + Add Expnses
+                    </button>
                 </div>
 
                 {/* Right div - Expenses List */}
-                <div className="md:w-1/2 bg-white p-6 rounded-lg shadow-2xl">
-                    <h1 className="text-xl font-bold mb-4">Expenses List</h1>
-                    {/* Εδώ μπορείς να βάλεις table ή list */}
+                <div className="md:w-1/2 bg-white p-6 rounded-lg shadow-2xl flex flex-col max-h-96">
+            
+                    {/* Header row */}
+                    <div className="flex items-center justify-between sticky top-0 bg-white z-10 border-b border-gray-200 pb-2">
+                        <h1 
+                            className="text-xl font-bold flex-1 text-left"
+                        >
+                            Expenses List
+                        </h1>
+
+                        {/* Center text */}
+                        <div className="flex-1 text-center text-gray-400 animate-bounce text-sm">
+                            ↓ Scroll for more
+                        </div>
+
+                        {/* Right button */}
+                        <div className="flex-1 text-right">
+                            <button className="bg-red-500 text-white text-sm px-3 py-1 rounded-md hover:bg-red-600 transition">
+                            Clear List
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Scrollable items area */}
+                    <div className="overflow-y-auto mt-4 space-y-4 pr-2">
+                        <div className="bg-white p-4 rounded-lg shadow-md">
+                            Name of user1: 50$ - - supermarket date
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow-md">
+                            Name of user2: 50$ - - supermarket date
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow-md">
+                            Name of user3: 50$ - - supermarket date
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow-md">
+                            Name of user4: 50$ - - supermarket date
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow-md">
+                            Name of user5: 50$ - - supermarket date
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow-md">
+                            Name of user6: 50$ - - supermarket date
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
+        
         <div className="container mx-auto p-6">
+
             {/* Bottom section for totals */}
             <div className="mt-8 bg-white p-6 rounded-lg shadow-2xl">
-                <h1 className="text-lg font-semibold mb-2">
-                Total Expenses:
+                <h1 className="text-xl font-bold mb-4 text-gray-800">
+                    Total Expenses Summary
                 </h1>
-                <h1 className="text-lg font-semibold">
-                User Expenses:
-                </h1>
+
+                {/* Totals container */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700">
+                
+                    {/* Overall total */}
+                    <div className="bg-gray-50 p-4 rounded-lg shadow-inner">
+                        <h2 className="font-semibold text-gray-800">💰 Total Expenses:</h2>
+                        <p className="text-gray-600">$350.00</p>
+                    </div>
+
+                    {/* Per user totals */}
+                    <div className="bg-gray-50 p-4 rounded-lg shadow-inner">
+                        <h2 className="font-semibold text-gray-800">User1 Expenses:</h2>
+                        <p className="text-gray-600">$120.00</p>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-lg shadow-inner">
+                        <h2 className="font-semibold text-gray-800">User2 Expenses:</h2>
+                        <p className="text-gray-600">$80.00</p>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-lg shadow-inner">
+                        <h2 className="font-semibold text-gray-800">User3 Expenses:</h2>
+                        <p className="text-gray-600">$150.00</p>
+                    </div>
+                </div>
             </div>
         </div>
-
     </>
-
   );
 };
 
