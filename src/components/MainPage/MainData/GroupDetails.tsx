@@ -30,7 +30,7 @@ const GroupDetails = () => {
                     </div>
 
                     <div>
-                        <h1 className="font-semibold">👥 Group:</h1>
+                        <h1 className="font-semibold">👥 Active Users:</h1>
                         <p className="text-gray-600">10 People</p>
                     </div>
 
@@ -44,8 +44,18 @@ const GroupDetails = () => {
                         <p className="text-gray-600">{new Date().toLocaleDateString()}</p>
                     </div>
 
+                     <div>
+                        <h1 className="font-semibold">💰 Total Expenses:</h1>
+                        <p className="text-gray-600">$0.00</p>
+                    </div>
+
                     <div>
                         <h1 className="font-semibold">💰 Total Paid:</h1>
+                        <p className="text-gray-600">$0.00</p>
+                    </div>
+
+                    <div>
+                        <h1 className="font-semibold">💰 Pending Expenses:</h1>
                         <p className="text-gray-600">$0.00</p>
                     </div>
 

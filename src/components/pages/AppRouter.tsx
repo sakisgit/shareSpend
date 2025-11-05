@@ -5,6 +5,8 @@ import HomePage from '../homepage/HomePage';
 import ShareSpendPage from '../ShareSpendPage/ShareSpendPage';
 import LogInPage from '../LogPages/LogInPage';
 import MainPage from '../MainPage/MainPage';
+import Stats from '../StatsPage/Stats';
+import Help from '../Help/Help';
 import Error from '../ErrorPages/Error';
 
 const TitleUpdater = () => {
@@ -24,6 +26,9 @@ const TitleUpdater = () => {
       case '/mainpage':
         document.title = "Main Page | Share Spend";
         break;
+      case '/stats':
+        document.title = "Statistics | Share Spend";
+        break;
       default:
         document.title = "Error Page| Share Spend";
     }
@@ -41,7 +46,9 @@ const AppRouter = () => {
               <Route path='/sharespend' element={<ShareSpendPage/>}/>
               <Route path='/loginpage' element={<LogInPage/>}/>
               <Route path='/mainpage' element={<MainPage/>}/>
-              <Route path='/LogOutPage' element={<ShareSpendPage/>}/>
+              <Route path='/logoutpage' element={<ShareSpendPage/>}/>
+              <Route path='/stats' element={<Stats/>}/>
+              <Route path='/help' element={<Help/>}/>
               <Route path='*' element={<Error/>}/>
           </Routes>
     </Router>
