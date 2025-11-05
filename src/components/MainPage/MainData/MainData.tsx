@@ -1,4 +1,5 @@
 
+import CustomButton from "../../Buttons/CustomButton";
 
 const MainData = () => {
   return (
@@ -13,9 +14,13 @@ const MainData = () => {
                     <h1 className="text-2xl font-bold text-gray-800">Group Details</h1>
                     
                     {/* Static arrow button */}
-                    <button className="text-gray-500 text-lg hover:text-gray-700 transition">
+                    <CustomButton 
+                        color="gray"
+                        size="sm"
+                    >
                         ↑
-                    </button>
+                    </CustomButton>
+
                 </div>
 
                 {/* Group details grid */}
@@ -47,13 +52,21 @@ const MainData = () => {
 
                     <div className="col-span-2 mt-4 flex space-x-2 justify-end">
 
-                        <button className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                        <CustomButton 
+                            color="red"
+                            size="sm"    
+                        >
                             Reset All
-                        </button>
-
-                        <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
+                        </CustomButton>
+                            
+                        <CustomButton
+                            color="blue"
+                            size="sm"
+                        >
                             Change
-                        </button>
+                        </CustomButton>
+                            
+    
                     </div>
                 </div>
             </div>
@@ -110,10 +123,16 @@ const MainData = () => {
                             placeholder="Enter category"
                         />
                     </div>
+                    
+                    <div className="flex justify-end mt-4">
+                        <CustomButton  
+                            color="blue"
+                        >
+                            + Add Expense
+                        </CustomButton>
+                    </div>
 
-                    <button className="flex ml-auto bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
-                        + Add Expnses
-                    </button>
+                        
                 </div>
 
                 {/* Right div - Expenses List */}
@@ -122,7 +141,7 @@ const MainData = () => {
                     {/* Header row */}
                     <div className="flex items-center justify-between sticky top-0 bg-white z-10 border-b border-gray-200 pb-2">
                         <h1 
-                            className="text-xl font-bold flex-1 text-left"
+                            className="text-xl font-bold text-left flex-none"
                         >
                             Expenses List
                         </h1>
@@ -133,11 +152,15 @@ const MainData = () => {
                         </div>
 
                         {/* Right button */}
-                        <div className="flex-1 text-right">
-                            <button className="bg-red-500 text-white text-sm px-3 py-1 rounded-md hover:bg-red-600 transition">
-                            Clear List
-                            </button>
+                        <div className="text-right">
+                            <CustomButton
+                                color="red" 
+                                size="sm"
+                            >
+                                Clear List
+                            </CustomButton>
                         </div>
+
                     </div>
 
                     {/* Scrollable items area */}
