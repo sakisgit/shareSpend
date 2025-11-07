@@ -5,7 +5,7 @@ import { useState } from "react";
 const navItems = [
   { name: "HomePage", path: "/" },
   { name: "Stats", path: "/stats" },
-  { name: "LogOut", path: "/LogOutPage", image: "/assets/LogIcons/log-out.png" },
+  { name: "LogOut", path: "/logoutpage", image: "/assets/LogIcons/log-out.png" },
 ];
 
 const MainNavBar: React.FC = () => {

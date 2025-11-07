@@ -6,6 +6,7 @@ import ShareSpendPage from '../ShareSpendPage/ShareSpendPage';
 import LogInPage from '../LogPages/LogInPage';
 import MainPage from '../MainPage/MainPage';
 import Stats from '../StatsPage/Stats';
+import Contact from '../Contact/Contact';
 import Help from '../Help/Help';
 import Error from '../ErrorPages/Error';
 
@@ -29,6 +30,15 @@ const TitleUpdater = () => {
       case '/stats':
         document.title = "Statistics | Share Spend";
         break;
+      case '/logoutpage':
+        document.title = "Log out | Share Spend";
+        break;
+      case '/contact':
+        document.title = "Contact | Share Spend";
+        break;
+      case '/help':
+        document.title = "Help | Share Spend";
+        break;
       default:
         document.title = "Error Page| Share Spend";
     }
@@ -47,6 +57,7 @@ const AppRouter = () => {
               <Route path='/loginpage' element={<LogInPage/>}/>
               <Route path='/mainpage' element={<MainPage/>}/>
               <Route path='/logoutpage' element={<ShareSpendPage/>}/>
+              <Route path='/contact' element={<Contact/>}/>
               <Route path='/stats' element={<Stats/>}/>
               <Route path='/help' element={<Help/>}/>
               <Route path='*' element={<Error/>}/>
