@@ -1,4 +1,3 @@
-
 import CustomButton from "../../Buttons/CustomButton"
 
 const ExpenseList = () => {

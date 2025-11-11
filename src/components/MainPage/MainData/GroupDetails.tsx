@@ -45,7 +45,7 @@ const GroupDetails = () => {
                     </div>
 
                      <div>
-                        <h1 className="font-semibold">💰 Total Expenses:</h1>
+                        <h1 className="font-semibold">💰 Total Group Expenses:</h1>
                         <p className="text-gray-600">$0.00</p>
                     </div>
 
@@ -55,7 +55,7 @@ const GroupDetails = () => {
                     </div>
 
                     <div>
-                        <h1 className="font-semibold">💰 Pending Expenses:</h1>
+                        <h1 className="font-semibold">💰 User Expenses:</h1>
                         <p className="text-gray-600">$0.00</p>
                     </div>
 

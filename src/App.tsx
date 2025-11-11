@@ -1,4 +1,3 @@
-
 import AppRouter from "./components/pages/AppRouter";
 
 function App() {

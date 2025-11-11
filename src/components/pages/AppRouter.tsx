@@ -1,6 +1,7 @@
 
 import { BrowserRouter as Router, Routes , Route , useLocation} from 'react-router-dom';
 import { useEffect } from 'react';
+import ProtectedRoute from '../pages/ProtectedRoute'
 import HomePage from '../homepage/HomePage';
 import ShareSpendPage from '../ShareSpendPage/ShareSpendPage';
 import LogInPage from '../LogPages/LogInPage';
@@ -55,7 +56,17 @@ const AppRouter = () => {
               <Route path='/' element={<HomePage/>}/>
               <Route path='/sharespend' element={<ShareSpendPage/>}/>
               <Route path='/loginpage' element={<LogInPage/>}/>
-              <Route path='/mainpage' element={<MainPage/>}/>
+              
+              {/* Προστατευμένη σελίδα */}
+              <Route 
+                path='/mainpage' 
+                element={
+                  <ProtectedRoute>
+                    <MainPage />
+                  </ProtectedRoute>
+                } 
+              />
+
               <Route path='/logoutpage' element={<ShareSpendPage/>}/>
               <Route path='/contact' element={<Contact/>}/>
               <Route path='/stats' element={<Stats/>}/>
