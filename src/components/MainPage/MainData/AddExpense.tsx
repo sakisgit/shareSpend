@@ -1,4 +1,5 @@
-import CustomButton from "../../Buttons/CustomButton"
+
+import CustomButton from "../../Buttons/CustomButton";
 
 const AddExpense = () => {
   return (

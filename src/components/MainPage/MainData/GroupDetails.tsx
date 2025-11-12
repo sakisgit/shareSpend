@@ -1,7 +1,54 @@
 
-import CustomButton from "../../Buttons/CustomButton"
+import { useState } from "react";
+import CustomButton from "../../Buttons/CustomButton";
 
 const GroupDetails = () => {
+    const [isVisible, setIsVisible] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
+
+    // State για τα δεδομένα που μπορούν να αλλάξουν
+    const [groupData, setGroupData]= useState({
+        userName:'John Doe',
+        nicknameUser:'Iron Man',
+        groupName:'Team Alpha',
+        activeUsers:'10',
+        totalGroupExpenses:'0.00',
+        totalPaid:'0.00',
+        userExpenses:'0.00'
+    });
+
+    const toggleVisibility = () => {
+        setIsVisible(!isVisible);
+    };
+
+     // Function για να μπεις σε edit mode
+    const handleChange = () => {
+        setIsEditMode(true);
+    };
+
+    // Function για να αποθηκεύσεις τις αλλαγές
+    const handleSave = () => {
+        // Εδώ μπορείς να κάνεις validation
+        // και να στείλεις στο backend αν χρειάζεται
+        
+        setIsEditMode(false);
+        // Μπορείς να προσθέσεις alert ή notification
+        alert("Changes saved!");
+    };
+
+    const handleCancel = () => {
+        if (window.confirm('Are you sure you want to cancel? Changes will be lost.')) {
+            setIsEditMode(false);
+        };
+    };
+
+    // Function για να αλλάζεις τα values
+    const handleInputChange = (field: string, value: string) => {
+        setGroupData(prev => ({
+            ...prev,[field]:value
+        }));
+    };
+
   return (
     <div className="container mx-auto p-6">
 
@@ -12,74 +59,174 @@ const GroupDetails = () => {
                 <div className="flex items-center justify-between border-b border-gray-200 pb-3 mb-4">
                     <h1 className="text-2xl font-bold text-gray-800">Group Details</h1>
                     
-                    {/* Static arrow button */}
                     <CustomButton 
                         color="gray"
                         size="sm"
+                        onClick={toggleVisibility}
                     >
-                        ↑
+                        {isVisible ? "↑ Hide" : "↓ Show" }
                     </CustomButton>
 
                 </div>
 
                 {/* Group details grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-gray-700">
-                    <div>
-                        <h1 className="font-semibold">👤 Name of User:</h1>
-                        <p className="text-gray-600">John Doe</p>
-                    </div>
+                {isVisible && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-gray-700">
 
-                    <div>
-                        <h1 className="font-semibold">👥 Active Users:</h1>
-                        <p className="text-gray-600">10 People</p>
-                    </div>
+                        {/* Name of User */}
+                        <div>
+                            <h1 className="font-semibold">👤 Name of User:</h1>
+                            {isEditMode ? (
+                                <input
+                                    type="text"
+                                    value={groupData.userName}
+                                    onChange={(e)=> handleInputChange('userName',e.target.value)}
+                                    className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                />
+                            ) : (
+                                <p className="text-gray-600">{groupData.userName}</p>
+                            )}
+                        </div>
 
-                    <div>
-                        <h1 className="font-semibold">🏷️ Nickname:</h1>
-                        <p className="text-gray-600">"Team Alpha"</p>
-                    </div>
+                        {/* Nickname of User */}
+                        <div>
+                            <h1 className="font-semibold">🏷️ Nickname of User:</h1>
+                            {isEditMode ? (
+                                <input
+                                    type="text"
+                                    value={groupData.nicknameUser}
+                                    onChange={(e)=> handleInputChange('nicknameUser',e.target.value)}
+                                    className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                />
+                            ) : (
+                                <p className="text-gray-600">{groupData.nicknameUser}</p>
+                            )}
+                        </div>
 
-                    <div>
-                        <h1 className="font-semibold">📅 Current Date:</h1>
-                        <p className="text-gray-600">{new Date().toLocaleDateString()}</p>
-                    </div>
+                        {/*Nickname of Group*/}
+                        <div>
+                            <h1 className="font-semibold">🏷️ Group Name:</h1>
+                            {isEditMode ? (
+                                <input
+                                    type="text"
+                                    value={groupData.groupName}
+                                    onChange={(e)=> handleInputChange('groupName',e.target.value)}
+                                    className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                />
+                            ) : (
+                                <p className="text-gray-600">{groupData.groupName}</p>
+                            )}
+                        </div>
 
-                     <div>
-                        <h1 className="font-semibold">💰 Total Group Expenses:</h1>
-                        <p className="text-gray-600">$0.00</p>
-                    </div>
+                        {/* Active Users */}
+                        <div>
+                            <h1 className="font-semibold">👥 Active Users:</h1>
+                            {isEditMode ? (
+                                <input
+                                    type="text"
+                                    value={groupData.activeUsers}
+                                    onChange={(e)=> handleInputChange('activeUsers',e.target.value)}
+                                    className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                />
+                            ) : (
+                                <p className="text-gray-600">{groupData.activeUsers}</p>
+                            )}
+                        </div>
 
-                    <div>
-                        <h1 className="font-semibold">💰 Total Paid:</h1>
-                        <p className="text-gray-600">$0.00</p>
-                    </div>
+                        <div>
+                            <h1 className="font-semibold">📅 Current Date:</h1>
+                            <p className="text-gray-600">{new Date().toLocaleDateString()}</p>
+                        </div>
+                        
+                        {/* Total Group Expenses */}
+                        <div>
+                            <h1 className="font-semibold">💰 Total Group Expenses:</h1>
+                            {isEditMode ? (
+                                <input
+                                    type="text"
+                                    value={groupData.totalGroupExpenses}
+                                    onChange={(e)=> handleInputChange('totalGroupExpenses',e.target.value)}
+                                    className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                />
+                            ) : (
+                                <p className="text-gray-600">{groupData.totalGroupExpenses}</p>
+                            )}
+                        </div>
 
-                    <div>
-                        <h1 className="font-semibold">💰 User Expenses:</h1>
-                        <p className="text-gray-600">$0.00</p>
-                    </div>
+                        {/* Total Paid of User */}
+                        <div>
+                            <h1 className="font-semibold">💰 Total Paid:</h1>
+                            {isEditMode ? (
+                                <input
+                                    type="text"
+                                    value={groupData.totalPaid}
+                                    onChange={(e)=> handleInputChange('totalPaid',e.target.value)}
+                                    className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                />
+                            ) : (
+                                <p className="text-gray-600">{groupData.totalPaid}</p>
+                            )}
+                        </div>
 
-                    <div className="col-span-2 mt-4 flex space-x-2 justify-end">
+                        {/* User Expenses */}
+                        <div>
+                            <h1 className="font-semibold">💰 User Expenses:</h1>
+                            {isEditMode ? (
+                                <input
+                                    type="text"
+                                    value={groupData.userExpenses}
+                                    onChange={(e)=> handleInputChange('userExpenses',e.target.value)}
+                                    className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                />
+                            ) : (
+                                <p className="text-gray-600">{groupData.userExpenses}</p>
+                            )}
+                        </div>
+                        
+                        {/* Buttons */}
+                        <div className="col-span-2 mt-4 flex space-x-2 justify-end">
+                            {isEditMode ? (
+                                    <>
+                                        <CustomButton
+                                            color='red'
+                                            size='sm'
+                                            onClick={handleCancel}
+                                        >
+                                            Cancel
+                                        </CustomButton>
 
-                        <CustomButton 
-                            color="red"
-                            size="sm"    
-                        >
-                            Reset All
-                        </CustomButton>
-                            
-                        <CustomButton
-                            color="blue"
-                            size="sm"
-                        >
-                            Change
-                        </CustomButton>
-                            
-    
+                                        <CustomButton
+                                            color='blue'
+                                            size='sm'
+                                            onClick={handleSave}
+                                        >
+                                            Save
+                                        </CustomButton>
+                                    </>
+                                ) : (
+                                    <>
+                                        <CustomButton 
+                                            color="red"
+                                            size="sm"    
+                                        >
+                                            Reset All
+                                        </CustomButton>
+                                            
+                                        <CustomButton
+                                            color="blue"
+                                            size="sm"
+                                            onClick={handleChange}
+                                        >
+                                            Change
+                                        </CustomButton>
+                                    </>
+                            )}    
+        
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
-        </div>
+    </div>
   )
 }
 

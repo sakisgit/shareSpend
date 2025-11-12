@@ -1,7 +1,7 @@
 
 import { BrowserRouter as Router, Routes , Route , useLocation} from 'react-router-dom';
 import { useEffect } from 'react';
-import ProtectedRoute from '../pages/ProtectedRoute'
+import ProtectedRoute from '../pages/ProtectedRoute';
 import HomePage from '../homepage/HomePage';
 import ShareSpendPage from '../ShareSpendPage/ShareSpendPage';
 import LogInPage from '../LogPages/LogInPage';

@@ -1,7 +1,7 @@
 
-import { useNavigate } from "react-router-dom"
-import LogInBtn from "../Buttons/LogInBtn"
-import Footer from "../homepage/Footer/Footer"
+import { useNavigate } from "react-router-dom";
+import LogInBtn from "../Buttons/LogInBtn";
+import Footer from "../homepage/Footer/Footer";
 
 const WelcomePage = () => {
     const navigate = useNavigate();
