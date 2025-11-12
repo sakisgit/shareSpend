@@ -2,20 +2,24 @@
 import { useState } from "react";
 import CustomButton from "../../Buttons/CustomButton";
 
+
 const GroupDetails = () => {
     const [isVisible, setIsVisible] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
 
-    // State για τα δεδομένα που μπορούν να αλλάξουν
-    const [groupData, setGroupData]= useState({
+     // Αρχικά values - μία φορά
+    const initialData = {
         userName:'John Doe',
         nicknameUser:'Iron Man',
         groupName:'Team Alpha',
-        activeUsers:'10',
-        totalGroupExpenses:'0.00',
-        totalPaid:'0.00',
-        userExpenses:'0.00'
-    });
+        activeUsers:10,
+        totalGroupExpenses:0.00,
+        totalPaid:0.00,
+        userExpenses:0.00
+    };
+
+    // State για τα δεδομένα που μπορούν να αλλάξουν
+    const [groupData, setGroupData]= useState(initialData);
 
     const toggleVisibility = () => {
         setIsVisible(!isVisible);
@@ -28,7 +32,35 @@ const GroupDetails = () => {
 
     // Function για να αποθηκεύσεις τις αλλαγές
     const handleSave = () => {
-        // Εδώ μπορείς να κάνεις validation
+        // Εδώ κάνεις validation
+        if(groupData.userName.length>28){
+            alert('User name must be max 28 characters!');
+            return;
+        };
+        if ( groupData.nicknameUser.length>12) {
+            alert('Nick name must be max 12 characters!');
+            return;
+        };
+        
+        if (groupData.groupName.length>18){
+            alert('Group name must be max 18 characters!');
+            return;
+        };
+
+        if(groupData.activeUsers <=1 || groupData.activeUsers>10){
+            alert('The number of active users must be between 2 up to 10');
+            return;
+        }
+        
+        if(
+            groupData.totalGroupExpenses <0.00 ||
+            groupData.totalPaid<0.00 ||
+            groupData.userExpenses<0.00
+        ) {
+            alert('Expenses or Paid cant be negatives');
+            return;
+        }
+
         // και να στείλεις στο backend αν χρειάζεται
         
         setIsEditMode(false);
@@ -36,6 +68,7 @@ const GroupDetails = () => {
         alert("Changes saved!");
     };
 
+    // Function για να ακυρωσεις
     const handleCancel = () => {
         if (window.confirm('Are you sure you want to cancel? Changes will be lost.')) {
             setIsEditMode(false);
@@ -47,6 +80,14 @@ const GroupDetails = () => {
         setGroupData(prev => ({
             ...prev,[field]:value
         }));
+    };
+
+    // Function για να κανεις Reset All
+    const handleResetAll = () => {
+        if (window.confirm('Are you sure you want to reset all data ?')) {
+            setGroupData(initialData);
+            setIsEditMode(false);
+        };
     };
 
   return (
@@ -207,7 +248,8 @@ const GroupDetails = () => {
                                     <>
                                         <CustomButton 
                                             color="red"
-                                            size="sm"    
+                                            size="sm"
+                                            onClick={handleResetAll}  
                                         >
                                             Reset All
                                         </CustomButton>
