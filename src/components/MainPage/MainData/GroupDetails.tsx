@@ -41,12 +41,13 @@ const GroupDetails = () => {
             alert('Nick name must be max 12 characters!');
             return;
         };
-        
+
         if (groupData.groupName.length>18){
             alert('Group name must be max 18 characters!');
             return;
         };
 
+    
         if(groupData.activeUsers <=1 || groupData.activeUsers>10){
             alert('The number of active users must be between 2 up to 10');
             return;
@@ -55,7 +56,7 @@ const GroupDetails = () => {
         if(
             groupData.totalGroupExpenses <0.00 ||
             groupData.totalPaid<0.00 ||
-            groupData.userExpenses<0.00
+            groupData.userExpenses< 0.00
         ) {
             alert('Expenses or Paid cant be negatives');
             return;
@@ -77,9 +78,45 @@ const GroupDetails = () => {
 
     // Function για να αλλάζεις τα values
     const handleInputChange = (field: string, value: string) => {
-        setGroupData(prev => ({
-            ...prev,[field]:value
-        }));
+        setGroupData(prev => {
+            if(field==='activeUsers') {
+                const num = parseInt(value) || 2;
+                return { ...prev, [field]: num };
+            };
+
+            if (
+                field === 'totalExpenses' ||
+                field === 'totalPaid' ||
+                field === 'userExpenses'
+            ) {
+                if(
+                    value === '' ||
+                    value === '.' ||
+                    value === ','
+                ){
+                    return {...prev,[field]:value};
+                };
+
+                let normalizedValue = value.replace(',', '.');
+
+                const parts = normalizedValue.split('.');
+
+                if (parts.length > 1) {
+                    // Αν έχει περισσότερα από 2 decimals, κόψε τα
+                    if (parts[1].length > 2) {
+                        normalizedValue = parts[0] + '.' + parts[1].substring(0, 2);
+                    };
+                };
+
+                // Convert to number
+                const num = parseFloat(normalizedValue) || 0;
+                return { ...prev, [field]: num };
+                
+            };
+
+            //για Strings
+            return {...prev,[field]:value};
+        });
     };
 
     // Function για να κανεις Reset All
@@ -164,7 +201,9 @@ const GroupDetails = () => {
                             <h1 className="font-semibold">👥 Active Users:</h1>
                             {isEditMode ? (
                                 <input
-                                    type="text"
+                                    type="number"
+                                    min='2'
+                                    max='10'
                                     value={groupData.activeUsers}
                                     onChange={(e)=> handleInputChange('activeUsers',e.target.value)}
                                     className="w-full border border-gray-300 rounded-lg p-2 mt-1"
@@ -184,7 +223,9 @@ const GroupDetails = () => {
                             <h1 className="font-semibold">💰 Total Group Expenses:</h1>
                             {isEditMode ? (
                                 <input
-                                    type="text"
+                                    type="number"
+                                    min='0'
+                                    step='0.01'
                                     value={groupData.totalGroupExpenses}
                                     onChange={(e)=> handleInputChange('totalGroupExpenses',e.target.value)}
                                     className="w-full border border-gray-300 rounded-lg p-2 mt-1"
@@ -199,7 +240,9 @@ const GroupDetails = () => {
                             <h1 className="font-semibold">💰 Total Paid:</h1>
                             {isEditMode ? (
                                 <input
-                                    type="text"
+                                    type="number"
+                                    min='0'
+                                    step='1.00'
                                     value={groupData.totalPaid}
                                     onChange={(e)=> handleInputChange('totalPaid',e.target.value)}
                                     className="w-full border border-gray-300 rounded-lg p-2 mt-1"
@@ -214,7 +257,9 @@ const GroupDetails = () => {
                             <h1 className="font-semibold">💰 User Expenses:</h1>
                             {isEditMode ? (
                                 <input
-                                    type="text"
+                                    type="number"
+                                    min='0'
+                                    step='0.01'
                                     value={groupData.userExpenses}
                                     onChange={(e)=> handleInputChange('userExpenses',e.target.value)}
                                     className="w-full border border-gray-300 rounded-lg p-2 mt-1"
