@@ -2,7 +2,7 @@
 interface CustomButtonProps {
     children: React.ReactNode;
     onClick?: () => void;
-    color?: 'blue' |'red' | 'gray';
+    color?: 'blue' |'red' | 'gray' | 'green';
     size?:'sm' | 'md' | 'lg'; 
 }
 
@@ -18,6 +18,7 @@ const CustomButton: React.FC <CustomButtonProps> = ({
         blue: "bg-blue-500 hover:bg-blue-600",
         red: "bg-red-500 hover:bg-red-600",
         gray: "bg-gray-500 hover:bg-gray-600",
+        green: "bg-green-500 hover:bg-green-600",
     };
 
     const sizeClasses = {

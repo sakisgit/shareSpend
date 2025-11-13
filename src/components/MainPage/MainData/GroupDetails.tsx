@@ -1,7 +1,6 @@
 
 import { useState } from "react";
 import CustomButton from "../../Buttons/CustomButton";
-import { initialState } from "recharts/types/state/rootPropsSlice";
 
 
 const GroupDetails = () => {
@@ -94,9 +93,7 @@ const GroupDetails = () => {
             if(field==='activeUsers') {
                 const num = parseInt(value) || 2;
                 return { ...prev, [field]: num };
-            };
-
-            if (
+            } else if (
                 field === 'totalGroupExpenses' ||
                 field === 'totalPaid' ||
                 field === 'userExpenses'
@@ -301,7 +298,7 @@ const GroupDetails = () => {
                                         </CustomButton>
 
                                         <CustomButton
-                                            color='blue'
+                                            color='green'
                                             size='sm'
                                             onClick={handleSave}
                                         >

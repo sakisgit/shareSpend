@@ -1,7 +1,36 @@
 
+
 import CustomButton from "../../Buttons/CustomButton";
 
-const ExpenseList = () => {
+interface ExpenseListProps {
+    expenses: Array<{
+        id: number;
+        amount: string;
+        description: string;
+        category: string;
+    }>;
+    onClearExpenses: () => void;
+    onDeleteExpense: (id:number)=> void;
+};
+
+const ExpenseList = ({
+        expenses,
+        onClearExpenses,
+        onDeleteExpense,
+    }:ExpenseListProps) => {
+
+    const handleClearList=() => {
+        if (window.confirm('Are you sure you want to clear all expenses?')) {
+            onClearExpenses();
+        };
+    };
+
+    const handleDelete = (id:number) => {
+        if(window.confirm('Are you sure you want to delete that expense?')){
+            onDeleteExpense(id);
+        }
+    };
+
   return (
     <>
         {/* Right div - Expenses List */}
@@ -16,79 +45,62 @@ const ExpenseList = () => {
                         </h1>
 
                         {/* Center text */}
-                        <div className="flex-1 text-center text-gray-400 animate-bounce text-sm">
-                            ↓ Scroll for more
-                        </div>
+                        {expenses.length >= 2  && (
+                            <div className="flex-1 text-center text-gray-400 animate-bounce text-sm">
+                                ↓ Scroll for more
+                            </div>
+                        )}
 
                         {/* Right button */}
-                        <div className="text-right">
-                            <CustomButton
-                                color="red" 
-                                size="sm"
-                            >
-                                Clear List
-                            </CustomButton>
-                        </div>
+                        {expenses.length>0 && (
+                            <div className="text-right">
+                                <CustomButton
+                                    color="red" 
+                                    size="sm"
+                                    onClick={handleClearList}
+                                >
+                                    Clear List
+                                </CustomButton>
+                            </div>
+                        )}
 
                     </div>
 
                     {/* Scrollable items area */}
                     <div className="overflow-y-auto mt-4 space-y-4 pr-2">
-                        <div className="bg-white p-4 rounded-lg shadow-md flex justify-between items-center">
-                            <span>Name of user1: 50$ - - supermarket date</span>
-                            <CustomButton 
-                                color="red"
-                                size="sm"
+                        {expenses.length===0 ? (
+                             <div className="text-center text-gray-400 py-8">
+                                No expenses yet. Add your first expense!
+                            </div>
+                        ):
+                        (expenses.map((expense)=>
+                            <div 
+                                key={expense.id}
+                                className="bg-white p-4 rounded-lg shadow-md flex justify-between items-center"
                             >
-                                x
-                            </CustomButton>
-                        </div>
-                        <div className="bg-white p-4 rounded-lg shadow-md flex justify-between items-center">
-                            <span>Name of user1: 50$ - - supermarket date</span>
-                            <CustomButton 
-                                color="red"
-                                size="sm"
-                            >
-                                x
-                            </CustomButton>
-                        </div>
-                        <div className="bg-white p-4 rounded-lg shadow-md flex justify-between items-center">
-                            <span>Name of user1: 50$ - - supermarket date</span>
-                            <CustomButton 
-                                color="red"
-                                size="sm"
-                            >
-                                x
-                            </CustomButton>
-                        </div>
-                        <div className="bg-white p-4 rounded-lg shadow-md flex justify-between items-center">
-                            <span>Name of user1: 50$ - - supermarket date</span>
-                            <CustomButton 
-                                color="red"
-                                size="sm"
-                            >
-                                x
-                            </CustomButton>
-                        </div>
-                        <div className="bg-white p-4 rounded-lg shadow-md flex justify-between items-center">
-                            <span>Name of user1: 50$ - - supermarket date</span>
-                            <CustomButton 
-                                color="red"
-                                size="sm"
-                            >
-                                x
-                            </CustomButton>
-                        </div>
-                        <div className="bg-white p-4 rounded-lg shadow-md flex justify-between items-center">
-                           <span>Name of user1: 50$ - - supermarket date</span>
-                            <CustomButton 
-                                color="red"
-                                size="sm"
-                            >
-                                x
-                            </CustomButton>
-                            
-                        </div>
+                                <p>
+                                    <h1>userName - <span>Date</span></h1>
+                                    <span>  {expense.category} - {expense.amount}€ </span>
+                                    <h1>{expense.description}</h1>
+                                </p>
+                                <div className="flex gap-2">
+                                    <CustomButton
+                                        color="green"
+                                        size="sm"
+                                    >
+                                        ✓
+                                    </CustomButton>
+                                    <CustomButton 
+                                        color="red"
+                                        size="sm"
+                                        onClick={() => handleDelete(expense.id)}
+                                    >
+                                        x
+                                    </CustomButton>
+                                </div>
+                            </div>
+                            )
+                            )}
                     </div>
                 </div>
     </>
