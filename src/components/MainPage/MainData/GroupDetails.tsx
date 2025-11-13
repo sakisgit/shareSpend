@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import CustomButton from "../../Buttons/CustomButton";
+import { initialState } from "recharts/types/state/rootPropsSlice";
 
 
 const GroupDetails = () => {
@@ -9,13 +10,13 @@ const GroupDetails = () => {
 
      // Αρχικά values - μία φορά
     const initialData = {
-        userName:'John Doe',
-        nicknameUser:'Iron Man',
-        groupName:'Team Alpha',
+        userName:'',
+        nicknameUser:'',
+        groupName:'',
         activeUsers:10,
         totalGroupExpenses:0.00,
         totalPaid:0.00,
-        userExpenses:0.00
+        userExpenses:0.00   
     };
 
     // State για τα δεδομένα που μπορούν να αλλάξουν
@@ -33,6 +34,11 @@ const GroupDetails = () => {
     // Function για να αποθηκεύσεις τις αλλαγές
     const handleSave = () => {
         // Εδώ κάνεις validation
+        if(!groupData.userName || groupData.userName.length === 0){
+            alert('Please enter user name');
+            return;
+        }
+
         if(groupData.userName.length>28){
             alert('User name must be max 28 characters!');
             return;
@@ -48,7 +54,12 @@ const GroupDetails = () => {
         };
 
     
-        if(groupData.activeUsers <=1 || groupData.activeUsers>10){
+        // ✅ Validation για activeUsers - convert to number
+        const activeUsersNum = typeof groupData.activeUsers === 'string' 
+            ? parseInt(groupData.activeUsers) 
+            : groupData.activeUsers;
+        
+        if(!groupData.activeUsers || isNaN(activeUsersNum) || activeUsersNum < 2 || activeUsersNum > 10){
             alert('The number of active users must be between 2 up to 10');
             return;
         }
@@ -73,6 +84,7 @@ const GroupDetails = () => {
     const handleCancel = () => {
         if (window.confirm('Are you sure you want to cancel? Changes will be lost.')) {
             setIsEditMode(false);
+
         };
     };
 
@@ -85,7 +97,7 @@ const GroupDetails = () => {
             };
 
             if (
-                field === 'totalExpenses' ||
+                field === 'totalGroupExpenses' ||
                 field === 'totalPaid' ||
                 field === 'userExpenses'
             ) {
@@ -160,6 +172,7 @@ const GroupDetails = () => {
                                     value={groupData.userName}
                                     onChange={(e)=> handleInputChange('userName',e.target.value)}
                                     className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                    placeholder='John Doe'
                                 />
                             ) : (
                                 <p className="text-gray-600">{groupData.userName}</p>
@@ -175,6 +188,7 @@ const GroupDetails = () => {
                                     value={groupData.nicknameUser}
                                     onChange={(e)=> handleInputChange('nicknameUser',e.target.value)}
                                     className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                    placeholder="Iron Man"
                                 />
                             ) : (
                                 <p className="text-gray-600">{groupData.nicknameUser}</p>
@@ -190,6 +204,7 @@ const GroupDetails = () => {
                                     value={groupData.groupName}
                                     onChange={(e)=> handleInputChange('groupName',e.target.value)}
                                     className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                    placeholder="Team Alpha"
                                 />
                             ) : (
                                 <p className="text-gray-600">{groupData.groupName}</p>
@@ -207,6 +222,7 @@ const GroupDetails = () => {
                                     value={groupData.activeUsers}
                                     onChange={(e)=> handleInputChange('activeUsers',e.target.value)}
                                     className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                    placeholder="10"
                                 />
                             ) : (
                                 <p className="text-gray-600">{groupData.activeUsers}</p>
@@ -229,6 +245,7 @@ const GroupDetails = () => {
                                     value={groupData.totalGroupExpenses}
                                     onChange={(e)=> handleInputChange('totalGroupExpenses',e.target.value)}
                                     className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                    placeholder="0.00"
                                 />
                             ) : (
                                 <p className="text-gray-600">{groupData.totalGroupExpenses}</p>
@@ -246,6 +263,7 @@ const GroupDetails = () => {
                                     value={groupData.totalPaid}
                                     onChange={(e)=> handleInputChange('totalPaid',e.target.value)}
                                     className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                    placeholder="0.00"
                                 />
                             ) : (
                                 <p className="text-gray-600">{groupData.totalPaid}</p>
@@ -263,6 +281,7 @@ const GroupDetails = () => {
                                     value={groupData.userExpenses}
                                     onChange={(e)=> handleInputChange('userExpenses',e.target.value)}
                                     className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                    placeholder="0.00"
                                 />
                             ) : (
                                 <p className="text-gray-600">{groupData.userExpenses}</p>
