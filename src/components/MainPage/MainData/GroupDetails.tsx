@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useAppContext } from "../../context/AppContext";
 import CustomButton from "../../Buttons/CustomButton";
 
 
@@ -7,19 +8,7 @@ const GroupDetails = () => {
     const [isVisible, setIsVisible] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
 
-     // Αρχικά values - μία φορά
-    const initialData = {
-        userName:'',
-        nicknameUser:'',
-        groupName:'',
-        activeUsers:10,
-        totalGroupExpenses:0.00,
-        totalPaid:0.00,
-        userExpenses:0.00   
-    };
-
-    // State για τα δεδομένα που μπορούν να αλλάξουν
-    const [groupData, setGroupData]= useState(initialData);
+    const {groupData, updateGroupData} = useAppContext();
 
     const toggleVisibility = () => {
         setIsVisible(!isVisible);
@@ -73,7 +62,8 @@ const GroupDetails = () => {
         }
 
         // και να στείλεις στο backend αν χρειάζεται
-        
+
+        updateGroupData(groupData);  // Αποθήκευσε όλα τα δεδομένα
         setIsEditMode(false);
         // Μπορείς να προσθέσεις alert ή notification
         alert("Changes saved!");
@@ -89,51 +79,58 @@ const GroupDetails = () => {
 
     // Function για να αλλάζεις τα values
     const handleInputChange = (field: string, value: string) => {
-        setGroupData(prev => {
-            if(field==='activeUsers') {
-                const num = parseInt(value) || 2;
-                return { ...prev, [field]: num };
-            } else if (
-                field === 'totalGroupExpenses' ||
-                field === 'totalPaid' ||
-                field === 'userExpenses'
-            ) {
-                if(
-                    value === '' ||
-                    value === '.' ||
-                    value === ','
-                ){
-                    return {...prev,[field]:value};
-                };
 
+        let newValue: any;
+        if(field === 'activeUsers') {
+            const num = parseInt(value) || 2;
+            newValue = num;
+        } else if (
+            field === 'totalGroupExpenses' ||
+            field === 'totalPaid' ||
+            field === 'userExpenses'
+        ) {
+            if(
+                value === '' ||
+                value === '.' ||
+                value === ','
+            ){
+                newValue = value;
+            } else {
                 let normalizedValue = value.replace(',', '.');
-
                 const parts = normalizedValue.split('.');
-
+                
                 if (parts.length > 1) {
-                    // Αν έχει περισσότερα από 2 decimals, κόψε τα
                     if (parts[1].length > 2) {
                         normalizedValue = parts[0] + '.' + parts[1].substring(0, 2);
-                    };
-                };
-
-                // Convert to number
+                    }
+                }
+            
                 const num = parseFloat(normalizedValue) || 0;
-                return { ...prev, [field]: num };
-                
-            };
+                newValue = num;
+            }
+        } else {
+            // για Strings
+            newValue = value;
+        }     
 
-            //για Strings
-            return {...prev,[field]:value};
-        });
+        // Χρησιμοποίησε το updateGroupData
+        updateGroupData({ [field]: newValue });
     };
 
     // Function για να κανεις Reset All
     const handleResetAll = () => {
         if (window.confirm('Are you sure you want to reset all data ?')) {
-            setGroupData(initialData);
+            updateGroupData({
+                userName: '',
+                nicknameUser: '',
+                groupName: '',
+                activeUsers: 10,
+                totalGroupExpenses: 0.00,
+                totalPaid: 0.00,
+                userExpenses: 0.00
+            });
             setIsEditMode(false);
-        };
+        }; 
     };
 
   return (

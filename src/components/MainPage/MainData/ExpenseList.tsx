@@ -1,34 +1,33 @@
 
-
+import { useAppContext } from "../../context/AppContext";
 import CustomButton from "../../Buttons/CustomButton";
 
-interface ExpenseListProps {
-    expenses: Array<{
-        id: number;
-        amount: string;
-        description: string;
-        category: string;
-    }>;
-    onClearExpenses: () => void;
-    onDeleteExpense: (id:number)=> void;
-};
 
-const ExpenseList = ({
-        expenses,
-        onClearExpenses,
-        onDeleteExpense,
-    }:ExpenseListProps) => {
+const ExpenseList = () => {
+    const { 
+        expenses, 
+        clearExpenses, 
+        deleteExpense, 
+        checkExpense 
+    } = useAppContext();
 
     const handleClearList=() => {
         if (window.confirm('Are you sure you want to clear all expenses?')) {
-            onClearExpenses();
+            clearExpenses();
         };
     };
 
     const handleDelete = (id:number) => {
         if(window.confirm('Are you sure you want to delete that expense?')){
-            onDeleteExpense(id);
+            deleteExpense(id);
+            alert('Expense deleted successfully!');
         }
+    };
+
+    const handleCheck = (id:number) => {
+        if(window.confirm('You got paid that?')){
+            checkExpense(id);
+        };
     };
 
   return (
@@ -76,35 +75,68 @@ const ExpenseList = ({
                         (expenses.map((expense)=>
                             <div 
                                 key={expense.id}
-                                className="bg-white p-4 rounded-lg shadow-md flex justify-between items-center"
+                                className="bg-gradient-to-r from-blue-50 to-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border-l-4 border-blue-500"
                             >
-                                <p>
-                                    <h1>userName - <span>Date</span></h1>
-                                    <span>  {expense.category} - {expense.amount}€ </span>
-                                    <h1>{expense.description}</h1>
-                                </p>
-                                <div className="flex gap-2">
-                                    <CustomButton
-                                        color="green"
-                                        size="sm"
-                                    >
-                                        ✓
-                                    </CustomButton>
-                                    <CustomButton 
-                                        color="red"
-                                        size="sm"
-                                        onClick={() => handleDelete(expense.id)}
-                                    >
-                                        x
-                                    </CustomButton>
+                                <div className="flex justify-between items-start">
+                                    {/* Left side - Expense Info */}
+                                    <div className="flex-1">
+                                        {/* Header row - User and Date */}
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                                    {expense.userName || 'Unknown'}
+                                                </span>
+                                                <span className="text-xs text-gray-500">
+                                                    {expense.date ? expense.date.toLocaleDateString('el-GR', {
+                                                        day: '2-digit',
+                                                        month: '2-digit',
+                                                        year: 'numeric'
+                                                    }) : 'N/A'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Description */}
+                                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                                            {expense.description}
+                                        </h3>
+                                        
+                                        {/* Category and Amount */}
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                                                {expense.category}
+                                            </span>
+                                            <span className="text-lg font-bold text-red-600">
+                                                -{expense.amount}€
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Right side - Action Buttons */}
+                                    <div className="flex gap-2 ml-4">
+                                        <CustomButton
+                                            color="green"
+                                            size="sm"
+                                            onClick={()=>handleCheck(expense.id)}
+                                        >
+                                            ✓
+                                        </CustomButton>
+                                        <CustomButton 
+                                            color="red"
+                                            size="sm"
+                                            onClick={() => handleDelete(expense.id)}
+                                        >
+                                            ×
+                                        </CustomButton>
+                                    </div>
                                 </div>
                             </div>
-                            )
-                            )}
+                        )
+                        )}
                     </div>
-                </div>
+        </div>
     </>
   )
-}
+};
 
-export default ExpenseList
+export default ExpenseList;
