@@ -1,15 +1,18 @@
 
-import { createContext, useState, useContext } from "react";
+import { createContext, useState, useContext, useMemo } from "react";
 import {Expense, GroupData } from '../../types/types'
 
 export interface AppContextType {
     expenses:Expense[];
     groupData:GroupData;
+    balance:number;
+    userBalance:number;
     addExpense: (amount: string, description: string, category: string) => void;
     deleteExpense: (id: number) => void;
     clearExpenses: () => void;
     checkExpense: (id: number) => void;
     updateGroupData: (data: Partial<GroupData>) => void;
+    resetAll: () => void;  
 };
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -26,6 +29,17 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         totalPaid: 0.00,
         userExpenses: 0.00
     });
+
+    // Υπολογισμός balance με προστασία από division by zero - memoized για σωστό hot reload
+    const balance = useMemo(() => {
+        return groupData.activeUsers >= 2 
+            ? groupData.totalGroupExpenses / groupData.activeUsers 
+            : 0;
+    }, [groupData.activeUsers, groupData.totalGroupExpenses]);
+
+    const userBalance = useMemo(() => {
+        return groupData.userExpenses - balance;
+    }, [groupData.userExpenses, balance]);
 
     const addExpense = (
         amount: string,
@@ -60,11 +74,12 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
             // Μετατρέψε το amount σε number
             const amountNumber = parseFloat(expense.amount);
             
-            // Ενημέρωσε το groupData
+            // Ενημέρωσε το groupData - προσθήκη userExpenses
             setGroupData(prev => ({
-            ...prev,
-            totalPaid: prev.totalPaid + amountNumber,
-            totalGroupExpenses: prev.totalGroupExpenses + amountNumber  // Προσθήκη στο totalExpenses επίσης
+                ...prev,
+                totalPaid: prev.totalPaid + amountNumber,
+                totalGroupExpenses: prev.totalGroupExpenses + amountNumber,
+                userExpenses: prev.userExpenses + amountNumber  // Ενημέρωση userExpenses
             }));
             
             // Διέγραψε το expense
@@ -76,14 +91,32 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         setGroupData(prev => ({ ...prev, ...data }));
     };
 
+    // Προσθήκη resetAll function που καθαρίζει ΟΛΑ
+    const resetAll = () => {
+        setExpenses([]);  // Καθαρίζει τη λίστα expenses
+        setGroupData({
+            userName: '',
+            nicknameUser: '',
+            groupName: '',
+            activeUsers: 10,
+            totalGroupExpenses: 0.00,
+            totalPaid: 0.00,
+            userExpenses: 0.00
+        });
+        // Το balance και userBalance θα γίνουν 0 αυτόματα γιατί totalGroupExpenses = 0
+    };
+
     const value: AppContextType = {
         expenses,
         groupData,
+        balance,
+        userBalance,
         addExpense,
         deleteExpense,
         clearExpenses,
         checkExpense,
-        updateGroupData
+        updateGroupData,
+        resetAll
     };
 
   return (

@@ -7,8 +7,8 @@ const ExpenseList = () => {
     const { 
         expenses, 
         clearExpenses, 
-        deleteExpense, 
-        checkExpense 
+        deleteExpense,
+        checkExpense
     } = useAppContext();
 
     const handleClearList=() => {
@@ -24,10 +24,15 @@ const ExpenseList = () => {
         }
     };
 
-    const handleCheck = (id:number) => {
-        if(window.confirm('You got paid that?')){
-            checkExpense(id);
-        };
+    const handleCheck = (id: number) => {
+        const expense = expenses.find(exp => exp.id === id);
+        if (expense) {
+            const amountNumber = parseFloat(expense.amount);
+            if(window.confirm(`Did ${expense.userName} pay ${amountNumber}€?`)){
+                checkExpense(id);
+                alert(`${expense.userName} gave ${amountNumber}€. Balance updated!`);
+            }
+        }
     };
 
   return (
@@ -117,7 +122,7 @@ const ExpenseList = () => {
                                         <CustomButton
                                             color="green"
                                             size="sm"
-                                            onClick={()=>handleCheck(expense.id)}
+                                            onClick={() => handleCheck(expense.id)}
                                         >
                                             ✓
                                         </CustomButton>

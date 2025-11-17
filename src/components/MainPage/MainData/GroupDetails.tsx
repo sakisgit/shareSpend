@@ -8,7 +8,11 @@ const GroupDetails = () => {
     const [isVisible, setIsVisible] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
 
-    const {groupData, updateGroupData} = useAppContext();
+    const {
+        groupData, 
+        updateGroupData,
+        resetAll
+    } = useAppContext();
 
     const toggleVisibility = () => {
         setIsVisible(!isVisible);
@@ -120,15 +124,7 @@ const GroupDetails = () => {
     // Function για να κανεις Reset All
     const handleResetAll = () => {
         if (window.confirm('Are you sure you want to reset all data ?')) {
-            updateGroupData({
-                userName: '',
-                nicknameUser: '',
-                groupName: '',
-                activeUsers: 10,
-                totalGroupExpenses: 0.00,
-                totalPaid: 0.00,
-                userExpenses: 0.00
-            });
+            resetAll();
             setIsEditMode(false);
         }; 
     };

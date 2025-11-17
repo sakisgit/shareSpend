@@ -3,7 +3,7 @@ import { useAppContext } from "../../context/AppContext";
 import GroupDetails from "./GroupDetails";
 import AddExpense from "./AddExpense";
 import ExpenseList from "./ExpenseList";
-import TotalsSummary from "./TotalsSummary";
+import BalanceSummary from "./BalanceSummary";
 
 const MainData = () => {
   const { addExpense } = useAppContext();
@@ -31,7 +31,7 @@ const MainData = () => {
         <div className="container mx-auto p-6">
 
             {/* Bottom section for totals */}
-            <TotalsSummary/>
+            <BalanceSummary/>
         </div>
     </>
   );
