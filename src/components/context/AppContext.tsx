@@ -12,7 +12,8 @@ export interface AppContextType {
     clearExpenses: () => void;
     checkExpense: (id: number) => void;
     updateGroupData: (data: Partial<GroupData>) => void;
-    resetAll: () => void;  
+    resetAll: () => void;
+    settleBalance: () => void;  // Προσθήκη εδώ
 };
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -46,6 +47,10 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         description:string,
         category:string,
     ) => {
+
+         // Μετατρέψε το amount σε number
+        const amountNumber = parseFloat(amount.replace(',', '.')) || 0;
+
         const newExpense: Expense = {
             id: Date.now(),
             amount:amount,
@@ -56,6 +61,13 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         };
 
         setExpenses([newExpense, ...expenses]);
+
+        // Ενημέρωση totalGroupExpenses και userExpenses
+        setGroupData(prev => ({
+            ...prev,
+            totalGroupExpenses: prev.totalGroupExpenses + amountNumber,
+            userExpenses: prev.userExpenses + amountNumber
+        }));
     };
 
     const deleteExpense = (id: number) => {
@@ -91,7 +103,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         setGroupData(prev => ({ ...prev, ...data }));
     };
 
-    // Προσθήκη resetAll function που καθαρίζει ΟΛΑ
+    // Προσθήκη resetAll function που τα καθαρίζει ΟΛΑ
     const resetAll = () => {
         setExpenses([]);  // Καθαρίζει τη λίστα expenses
         setGroupData({
@@ -102,8 +114,22 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
             totalGroupExpenses: 0.00,
             totalPaid: 0.00,
             userExpenses: 0.00
+            // Το balance και userBalance θα γίνουν 0 αυτόματα γιατί totalGroupExpenses = 0
         });
-        // Το balance και userBalance θα γίνουν 0 αυτόματα γιατί totalGroupExpenses = 0
+    };
+
+    // Function για settle balance - μεταφέρει userExpenses στο totalPaid και μηδενίζει όλα
+    const settleBalance = () => {
+        const currentUserExpenses = groupData.userExpenses;
+        
+        setGroupData(prev => ({
+            ...prev,
+            totalPaid: prev.totalPaid + currentUserExpenses,  // Προσθήκη στο totalPaid
+            totalGroupExpenses: 0.00,  // Μηδενισμός
+            userExpenses: 0.00  // Μηδενισμός
+        }));
+        
+        setExpenses([]);  // Καθαρισμός όλων των expenses
     };
 
     const value: AppContextType = {
@@ -116,7 +142,8 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         clearExpenses,
         checkExpense,
         updateGroupData,
-        resetAll
+        resetAll,
+        settleBalance
     };
 
   return (

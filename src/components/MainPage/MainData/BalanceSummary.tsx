@@ -7,7 +7,7 @@ import CustomButton from "../../Buttons/CustomButton";
 const BalanceSummary = () => {
     const [isVisible, setIsVisible]= useState(false);
 
-    const {groupData, balance, userBalance} = useAppContext();
+    const {groupData, balance, userBalance, settleBalance} = useAppContext();
 
     const toggleVisibility = () => {
         setIsVisible(!isVisible);
@@ -33,32 +33,57 @@ const BalanceSummary = () => {
 
                 {isVisible && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700">
-                        {/* Total Group Expenses */}
+                       
+                        {/* Div 1: Balance of Group */}
                         <div className="bg-gray-50 p-4 rounded-lg shadow-inner">
-                            <h2 className="font-semibold text-gray-800">💰 Total Group Expenses:</h2>
-                            <p className="text-gray-600">{groupData.totalGroupExpenses.toFixed(2)}€</p>
+                            <h2 className="font-semibold text-gray-800">💰 Balance of {groupData.groupName}:</h2>
+                            <p className="text-gray-600">{balance.toFixed(2)} €</p>
                         </div>
-                        
-                        {/* Overall total */}
+
+                        {/* Div 2: Balance Per User (με +/-) */}
                         <div className="bg-gray-50 p-4 rounded-lg shadow-inner">
-                            <h2 className="font-semibold text-gray-800">💰 Balance (per user):</h2>
-                            <p className="text-gray-600">{balance.toFixed(2)}€</p>
+                            <h2 className="font-semibold text-gray-800">💰 Balance {groupData.nicknameUser}:</h2>
+                            <p className="text-gray-600">{balance.toFixed(2)} €</p>
                         </div>
                         
 
-                        {/* Per user totals */}
-                        <div className="bg-gray-50 p-4 rounded-lg shadow-inner">
-                            {userBalance < 0 ? (
-                                <>
-                                    <h2 className="font-semibold text-gray-800">{groupData.nicknameUser} have to give to others users:</h2>
-                                    <p className="text-gray-600">{userBalance.toFixed(2)}€</p>
-                                </>
-                            ) : (
-                                <>
-                                    <h2 className="font-semibold text-gray-800">{groupData.nicknameUser} must take from the other users:</h2>
-                                    <p className="text-gray-600">{userBalance.toFixed(2)}€</p>
-                                </>
+                        {/* Div 3: User Balance με Check Button */}
+                        <div  className={`p-4 rounded-lg shadow-inner col-span-1 sm:col-span-2 ${userBalance < 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
+                           <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="font-semibold text-gray-800">Your Balance:</h2>
+                                    <p className="text-gray-600">{userBalance > 0 ? '+' : ''}{userBalance.toFixed(2)} €</p>
+                                </div>
+
+                                {userBalance < 0 ?(
+                                        <CustomButton
+                                        color="green"
+                                        size="sm"
+                                        onClick={() => {
+                                            if(window.confirm('Settle balance? This will clear all expenses and update total paid.')){
+                                                settleBalance();
+                                                alert('Balance settled! All expenses cleared.');
+                                            }
+                                        }}
+                                    >
+                                        ✓ Gave Money
+                                    </CustomButton>
+                                ) : (
+                                    <CustomButton
+                                        color="green"
+                                        size="sm"
+                                        onClick={() => {
+                                            if(window.confirm('Settle balance? This will clear all expenses and update total paid.')){
+                                                settleBalance();
+                                                alert('Balance settled! All expenses cleared.');
+                                            }
+                                        }}
+                                    >
+                                        ✓ Got Money
+                                    </CustomButton>
                             )}
+                                
+                           </div>
                         </div>
                         
                     </div>

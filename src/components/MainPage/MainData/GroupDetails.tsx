@@ -227,55 +227,19 @@ const GroupDetails = () => {
                         {/* Total Group Expenses */}
                         <div>
                             <h1 className="font-semibold">💰 Total Group Expenses:</h1>
-                            {isEditMode ? (
-                                <input
-                                    type="number"
-                                    min='0'
-                                    step='0.01'
-                                    value={groupData.totalGroupExpenses}
-                                    onChange={(e)=> handleInputChange('totalGroupExpenses',e.target.value)}
-                                    className="w-full border border-gray-300 rounded-lg p-2 mt-1"
-                                    placeholder="0.00"
-                                />
-                            ) : (
-                                <p className="text-gray-600">{groupData.totalGroupExpenses}</p>
-                            )}
+                            <p className="text-gray-600">{groupData.totalGroupExpenses.toFixed(2)} €</p>
                         </div>
 
                         {/* Total Paid of User */}
                         <div>
                             <h1 className="font-semibold">💰 Total Paid:</h1>
-                            {isEditMode ? (
-                                <input
-                                    type="number"
-                                    min='0'
-                                    step='1.00'
-                                    value={groupData.totalPaid}
-                                    onChange={(e)=> handleInputChange('totalPaid',e.target.value)}
-                                    className="w-full border border-gray-300 rounded-lg p-2 mt-1"
-                                    placeholder="0.00"
-                                />
-                            ) : (
-                                <p className="text-gray-600">{groupData.totalPaid}</p>
-                            )}
+                            <p className="text-gray-600">{groupData.totalPaid.toFixed(2)} €</p>
                         </div>
 
                         {/* User Expenses */}
                         <div>
                             <h1 className="font-semibold">💰 User Expenses:</h1>
-                            {isEditMode ? (
-                                <input
-                                    type="number"
-                                    min='0'
-                                    step='0.01'
-                                    value={groupData.userExpenses}
-                                    onChange={(e)=> handleInputChange('userExpenses',e.target.value)}
-                                    className="w-full border border-gray-300 rounded-lg p-2 mt-1"
-                                    placeholder="0.00"
-                                />
-                            ) : (
-                                <p className="text-gray-600">{groupData.userExpenses}</p>
-                            )}
+                            <p className="text-gray-600">{groupData.userExpenses.toFixed(2)} €</p>
                         </div>
                         
                         {/* Buttons */}
