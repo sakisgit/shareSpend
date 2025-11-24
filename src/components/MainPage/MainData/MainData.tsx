@@ -4,14 +4,17 @@ import GroupDetails from "./GroupDetails";
 import AddExpense from "./AddExpense";
 import ExpenseList from "./ExpenseList";
 import BalanceSummary from "./BalanceSummary";
+import GroupSelector from "./GroupSelector/GroupSelector";
 
 const MainData = () => {
   const { addExpense } = useAppContext();
 
   return (
     <>    
+        {/* Top section Group Information/Selector*/}
+        <GroupSelector/>
 
-        {/* Top section Group Details */}
+        {/* section Group Details */}
         <GroupDetails/>
 
         <div className="container mx-auto p-6">
