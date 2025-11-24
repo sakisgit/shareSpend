@@ -122,9 +122,9 @@ const GroupDetails = () => {
     };
 
     // Function για να κανεις Reset All
-    const handleResetAll = () => {
+    const handleResetAll = async () => {
         if (window.confirm('Are you sure you want to reset all data ?')) {
-            resetAll();
+            await resetAll();
             setIsEditMode(false);
         }; 
     };

@@ -7,7 +7,7 @@ interface AddExpenseProps {
         amount: string, 
         description: string, 
         category: string
-    ) => void;
+    ) =>Promise<void>;
 };
 
 const AddExpense = ({onAddExpense}: AddExpenseProps) => {
@@ -34,7 +34,7 @@ const AddExpense = ({onAddExpense}: AddExpenseProps) => {
     };
 
 
-    const handleAddExpense = () =>{
+    const handleAddExpense = async () =>{
 
         if(
             category.length===0 || 
@@ -61,7 +61,7 @@ const AddExpense = ({onAddExpense}: AddExpenseProps) => {
             };
         };
 
-        onAddExpense(amount, description, category);
+        await onAddExpense(amount, description, category);
         alert('Expense added to list !');
         
         setAmount('');

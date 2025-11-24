@@ -11,25 +11,25 @@ const ExpenseList = () => {
         checkExpense
     } = useAppContext();
 
-    const handleClearList=() => {
+    const handleClearList=async () => {
         if (window.confirm('Are you sure you want to clear all expenses?')) {
-            clearExpenses();
+            await clearExpenses();
         };
     };
 
-    const handleDelete = (id:number) => {
+    const handleDelete = async (id:number) => {
         if(window.confirm('Are you sure you want to delete that expense?')){
-            deleteExpense(id);
+            await deleteExpense(id);
             alert('Expense deleted successfully!');
         }
     };
 
-    const handleCheck = (id: number) => {
+    const handleCheck = async (id: number) => {
         const expense = expenses.find(exp => exp.id === id);
         if (expense) {
             const amountNumber = parseFloat(expense.amount);
             if(window.confirm(`Did ${expense.userName} pay ${amountNumber}€?`)){
-                checkExpense(id);
+                await checkExpense(id);
                 alert(`${expense.userName} gave ${amountNumber}€. Balance updated!`);
             }
         }

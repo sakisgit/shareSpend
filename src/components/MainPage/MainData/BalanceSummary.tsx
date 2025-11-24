@@ -59,9 +59,9 @@ const BalanceSummary = () => {
                                         <CustomButton
                                         color="green"
                                         size="sm"
-                                        onClick={() => {
+                                        onClick={ async() => {
                                             if(window.confirm('Settle balance? This will clear all expenses and update total paid.')){
-                                                settleBalance();
+                                                 await settleBalance();
                                                 alert('Balance settled! All expenses cleared.');
                                             }
                                         }}
@@ -72,9 +72,9 @@ const BalanceSummary = () => {
                                     <CustomButton
                                         color="green"
                                         size="sm"
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if(window.confirm('Settle balance? This will clear all expenses and update total paid.')){
-                                                settleBalance();
+                                                await settleBalance();
                                                 alert('Balance settled! All expenses cleared.');
                                             }
                                         }}
