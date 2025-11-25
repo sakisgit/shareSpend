@@ -108,7 +108,7 @@ const CreateGroupModal = ({
                         size="sm"
                         onClick={handleButtonClick}
                     >
-                       Create
+                       Create Group
                     </CustomButton>
                 </div>
 
