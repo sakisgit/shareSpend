@@ -15,18 +15,24 @@ const LogInPage = () => {
     const handleLogin= async () => {
       setError(null);
 
-      const {data, error } = await supabase.auth.signInWithPassword(
-        {
+      const {data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-        }
-      );
-        
-        
-      if(error) {
-        setError(error.message);
+      });
+
+      if (error) {
+          setError(error.message);
       } else {
-        navigate('/mainpage');
+          // Αν rememberMe = true, αποθήκευσε στο localStorage
+          if (rememberMe) {
+              // Το Supabase το κάνει αυτόματα με persistSession: true
+              // Αλλά μπορούμε να set-άρουμε expiry
+              localStorage.setItem('rememberMe', 'true');
+          } else {
+              localStorage.setItem('rememberMe', 'false');
+          }
+          
+          navigate('/mainpage');
       };
     };
 
@@ -51,6 +57,7 @@ const LogInPage = () => {
             onChange={(e)=> setEmail(e.target.value)}
             className="w-full border border-gray-300 rounded-lg p-2"
             placeholder="Enter your email"
+            autoFocus
           />
         </div>
 

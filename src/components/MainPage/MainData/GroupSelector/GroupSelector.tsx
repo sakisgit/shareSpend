@@ -140,7 +140,7 @@ const GroupSelector = () => {
                                         setShowLeaveModal(true);
                                     }}
                                 >
-                                    Leave
+                                    ← Leave
                                 </CustomButton>
                             )}
                             </div>
