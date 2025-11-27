@@ -1,6 +1,6 @@
 
 import { supabase } from '../supabaseClient/supabaseClient';
-import { Expense, GroupData, Group } from '../types/types';
+import { Expense, GroupData, Group, GroupSpecificData } from '../types/types';
 
 // ========== GROUP DATA OPERATIONS ==========
 
@@ -51,6 +51,103 @@ export const fetchGroupData = async (): Promise<GroupData | null> => {
 };
 
 /**
+ * Φορτώνει τα group-specific data από JSON στη βάση
+ * @returns Record<string, GroupSpecificData> με τα group-specific data, ή empty object αν error
+ */
+export const fetchGroupSpecificData = async (): Promise<Record<string, GroupSpecificData>> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.log('No user found for fetchGroupSpecificData');
+      return {};
+    }
+
+    const { data, error } = await supabase
+      .from('group_data')
+      .select('group_specific_data_json')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No record found - first time
+        return {};
+      }
+      // Αν το column δεν υπάρχει (error code 42703), return empty object
+      if (error.code === '42703' || error.message?.includes('column') || error.message?.includes('does not exist')) {
+        console.warn('group_specific_data_json column does not exist yet. Please run the migration. Falling back to localStorage.');
+        return {};
+      }
+      console.error('Error fetching group-specific data:', error);
+      return {};
+    }
+
+    if (!data || !data.group_specific_data_json) {
+      return {};
+    }
+
+    // Parse JSON string to object
+    try {
+      const parsed = typeof data.group_specific_data_json === 'string' 
+        ? JSON.parse(data.group_specific_data_json)
+        : data.group_specific_data_json;
+      return parsed || {};
+    } catch (parseError) {
+      console.error('Error parsing group-specific data JSON:', parseError);
+      return {};
+    }
+  } catch (error) {
+    console.error('Unexpected error in fetchGroupSpecificData:', error);
+    return {};
+  }
+};
+
+/**
+ * Αποθηκεύει τα group-specific data ως JSON στη βάση
+ * @param groupSpecificDataMap - Record με τα group-specific data
+ * @returns true αν επιτυχής, false αν error
+ */
+export const upsertGroupSpecificData = async (
+  groupSpecificDataMap: Record<string, GroupSpecificData>
+): Promise<boolean> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error('No user found for upsertGroupSpecificData');
+      return false;
+    }
+
+    // Convert to JSON string
+    const jsonString = JSON.stringify(groupSpecificDataMap);
+
+    const { error } = await supabase
+      .from('group_data')
+      .upsert({
+        user_id: user.id,
+        group_specific_data_json: jsonString,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (error) {
+      // Αν το column δεν υπάρχει (error code 42703), log warning αλλά continue
+      if (error.code === '42703' || error.message?.includes('column') || error.message?.includes('does not exist')) {
+        console.warn('group_specific_data_json column does not exist yet. Please run the migration. Data will be stored in localStorage only.');
+        return false;
+      }
+      console.error('Error upserting group-specific data:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Unexpected error in upsertGroupSpecificData:', error);
+    return false;
+  }
+};
+
+/**
  * Δημιουργεί ή ενημερώνει τα group data (upsert)
  * @param groupData - Το GroupData object προς αποθήκευση
  * @returns true αν επιτυχής, false αν error
@@ -75,6 +172,7 @@ export const upsertGroupData = async (groupData: GroupData): Promise<boolean> =>
         total_paid: groupData.totalPaid,
         user_expenses: groupData.userExpenses,
         updated_at: new Date().toISOString(),
+        // Note: group_specific_data_json is updated separately via upsertGroupSpecificData
       }, {
         onConflict: 'user_id' // Αν υπάρχει ήδη, κάνε update
       });

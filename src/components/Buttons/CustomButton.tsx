@@ -5,7 +5,7 @@ interface CustomButtonProps {
     color?: 'blue' |'red' | 'gray' | 'green';
     size?:'sm' | 'md' | 'lg';
     disabled?: boolean;
-}
+};
 
 const CustomButton: React.FC <CustomButtonProps> = ({
     children,
@@ -38,7 +38,7 @@ const CustomButton: React.FC <CustomButtonProps> = ({
         {children}
     </button>
     
-  ) 
-}
+  );
+};
 
-export default CustomButton
+export default CustomButton;

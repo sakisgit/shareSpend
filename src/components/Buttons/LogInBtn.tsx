@@ -17,7 +17,7 @@ const LogInBtn: React.FC<LogInBtnProps> = ({ onClick, disabled = false, children
       <img src="/assets/LogIcons/log-in.png" alt="Log In" className="w-5 h-5" />
       <span>{children || 'Log In'}</span>
     </button>
-  )
-}
+  );
+};
 
-export default LogInBtn
+export default LogInBtn;
