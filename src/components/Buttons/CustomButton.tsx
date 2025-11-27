@@ -3,7 +3,8 @@ interface CustomButtonProps {
     children: React.ReactNode;
     onClick?: () => void;
     color?: 'blue' |'red' | 'gray' | 'green';
-    size?:'sm' | 'md' | 'lg'; 
+    size?:'sm' | 'md' | 'lg';
+    disabled?: boolean;
 }
 
 const CustomButton: React.FC <CustomButtonProps> = ({
@@ -11,8 +12,10 @@ const CustomButton: React.FC <CustomButtonProps> = ({
     onClick,
     color='blue',
     size='md',
+    disabled = false,
 }) => {
-    const baseClasses = "text-white rounded-lg transition hover:opacity-90 flex items-center justify-center";
+    const baseClasses = "text-white rounded-lg transition flex items-center justify-center";
+    const disabledClasses = disabled ? "opacity-50 cursor-not-allowed" : "hover:opacity-90";
 
     const colorClasses = {
         blue: "bg-blue-500 hover:bg-blue-600",
@@ -28,8 +31,9 @@ const CustomButton: React.FC <CustomButtonProps> = ({
     };
   return (
     <button
-        onClick={onClick}
-        className={`${baseClasses} ${colorClasses[color]} ${sizeClasses[size]}`}
+        onClick={disabled ? undefined : onClick}
+        disabled={disabled}
+        className={`${baseClasses} ${colorClasses[color]} ${sizeClasses[size]} ${disabledClasses}`}
     >
         {children}
     </button>

@@ -33,9 +33,9 @@ export interface AppContextType {
     updateGroupData: (data: Partial<GroupData>) => void;
     resetAll: () => Promise<void>;
     settleBalance: () => Promise<void>;
-    createNewGroup: (groupName: string, activeUsers: number) => Promise<void>; // Νέο
-    selectGroup: (groupId: string) => void; // Νέο
-    loadGroups: () => Promise<void>; // Νέο
+    createNewGroup: (groupName: string, activeUsers: number) => Promise<void>; 
+    selectGroup: (groupId: string) => void;
+    loadGroups: () => Promise<void>; 
 };
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -89,7 +89,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
 
                 // Αν υπάρχει groupName στο groupData, βρες το αντίστοιχο group
                 if (loadedGroupData?.groupName) {
-                    const matchingGroup = loadedGroups.find(g => g.name === loadedGroupData.groupName);
+                    const matchingGroup = loadedGroups.find((g: Group) => g.name === loadedGroupData.groupName);
                     if (matchingGroup) {
                         setSelectedGroup(matchingGroup);
                     };
@@ -112,6 +112,14 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         try {
             console.log('Creating group:', { groupName, activeUsers });
             
+            const MAX_GROUPS = 5;
+        
+            // Έλεγχος πριν δημιουργήσει
+            if (groups.length >= MAX_GROUPS) {
+                alert(`You have reached the maximum limit of ${MAX_GROUPS} groups. Please delete a group before creating a new one.`);
+                return;
+            };
+
             // Δημιούργησε το group στη βάση
             const newGroupData = await createGroup(groupName, activeUsers);
             
@@ -119,7 +127,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                 console.error('createGroup returned null');
                 // Το error message έχει ήδη εμφανιστεί από το createGroup
                 return;
-            }
+            };
 
             console.log('Group created successfully:', newGroupData);
 
@@ -137,13 +145,15 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
 
             // Επιλέξτε το νέο group ως active
             const updatedGroups = await fetchGroups();
-            const newGroup = updatedGroups.find(g => g.groupPassword === newGroupData.groupPassword);
+            const newGroup = updatedGroups.find((g: Group) => g.groupPassword === newGroupData.groupPassword);
             if (newGroup) {
                 setSelectedGroup(newGroup);
             } else {
                 console.warn('New group not found in updated groups list');
-            }
+            };
+
         } catch (error) {
+
             console.error('Error in createNewGroup:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             alert(`Error creating group: ${errorMessage}`);
@@ -168,7 +178,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         // Αποθήκευσε στη βάση
         if (group.groupPassword) {
             await updateGroupDataFromGroup(group.name, group.members, group.groupPassword);
-        }
+        };
     };
 
      /**
@@ -180,7 +190,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
             setGroups(loadedGroups);
         } catch (error) {
             console.error('Error loading groups:', error);
-        }
+        };
     };
 
     // ========== AUTO-SAVE GROUP DATA ==========
@@ -233,7 +243,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                         exp.id === newExpense.id ? { ...exp, id: dbId } : exp
                     )
                 );
-            }
+            };
         } catch (error) {
             console.error('Error saving expense:', error);
             // Rollback αν αποτύχει
@@ -243,7 +253,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                 totalGroupExpenses: prev.totalGroupExpenses - amountNumber,
                 userExpenses: prev.userExpenses - amountNumber
             }));
-        }
+        };
     };
 
     const deleteExpense = async (id: number) => {
@@ -272,7 +282,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                 totalGroupExpenses: prev.totalGroupExpenses + amountNumber,
                 userExpenses: prev.userExpenses + amountNumber
             }));
-        }
+        };
     };
 
     const clearExpenses = async () => {
@@ -289,7 +299,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
             await clearAllExpensesFromDB();
         } catch (error) {
             console.error('Error clearing expenses:', error);
-        }
+        };
     };
 
     const checkExpense = async (id: number) => {

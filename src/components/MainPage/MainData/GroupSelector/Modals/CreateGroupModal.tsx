@@ -6,12 +6,16 @@ interface CreateGroupModalProps {
     isOpen:boolean,
     onClose: () => void,
     onCreate: (groupName: string, activeUsers: number) => void;
+    currentGroupsCount?: number;
+    maxGroups?: number; 
 };
 
 const CreateGroupModal = ({
     isOpen,
     onClose,
-    onCreate
+    onCreate,
+    currentGroupsCount = 0, // ✅ Προσθήκη default values
+    maxGroups = 5 // ✅ Προσθήκη default values
 }: CreateGroupModalProps) => {
     const [groupName, setGroupName] = useState('');
     const [activeUsers, setActiveUsers] = useState(2); 
@@ -31,6 +35,13 @@ const CreateGroupModal = ({
 
     // Handle button click (όταν κάνει click στο Create button)
     const handleButtonClick = () => {
+        // ✅ ΕΛΕΓΧΟΣ ΠΡΩΤΑ - πριν τα άλλα
+        if (currentGroupsCount >= maxGroups) {
+            alert(`You have reached the maximum limit of ${maxGroups} groups.`);
+            return;
+        }
+        
+        // ✅ Μετά έλεγξε τα άλλα
         if (groupName.trim() && activeUsers >= 2 && activeUsers <= 10) {
             onCreate(groupName.trim(), activeUsers);
             setGroupName('');
@@ -47,12 +58,22 @@ const CreateGroupModal = ({
         };
     };
 
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
             <h2 className="text-xl font-bold mb-4 text-gray-800">
                 Create New Group
             </h2>
+
+            {/* Προσθήκη warning message */}
+            {currentGroupsCount >= maxGroups - 1 && (
+                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                        ⚠️ You have {currentGroupsCount} groups. Maximum limit: {maxGroups}
+                    </p>
+                </div>
+            )}
 
             <form onSubmit={handleSubmit}>
                 <div className="mb-4">
@@ -115,7 +136,7 @@ const CreateGroupModal = ({
             </form>
         </div>
     </div>
-  )
-}
+  );
+};
 
 export default CreateGroupModal;

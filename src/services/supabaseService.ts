@@ -1,6 +1,6 @@
 
 import { supabase } from '../supabaseClient/supabaseClient';
-import { Expense, GroupData, Group} from '../types/types';
+import { Expense, GroupData, Group } from '../types/types';
 
 // ========== GROUP DATA OPERATIONS ==========
 
@@ -277,7 +277,21 @@ export const createGroup = async (
         if (!user) {
             console.error('No user found for createGroup');
             return null;
-        };
+        }
+
+        // ΕΛΕΓΧΟΣ: Πόσα groups έχει ήδη ο χρήστης
+        const { count, error: countError } = await supabase
+            .from('groups')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+
+        const MAX_GROUPS = 5; // Περιορισμός
+        const currentCount = count || 0;
+
+        if (currentCount >= MAX_GROUPS) {
+            alert(`You have reached the maximum limit of ${MAX_GROUPS} groups. Please delete a group before creating a new one.`);
+            return null;
+        }
 
         // Πάρε το userName από το group_data
         const groupData = await fetchGroupData();
@@ -342,7 +356,7 @@ export const createGroup = async (
                 members: activeUsers,
                 group_password: groupPassword,
                 created_at: new Date().toISOString(),
-                creator_name: creatorName, // Προσθήκη userName
+                creator_name: creatorName,
             })
             .select('id, group_password')
             .single();
@@ -355,7 +369,6 @@ export const createGroup = async (
                 details: error.details,
                 hint: error.hint
             });
-            // Εμφάνισε το error στον χρήστη
             alert(`Error creating group: ${error.message || 'Unknown error'}`);
             return null;
         }
@@ -405,14 +418,14 @@ export const fetchGroups = async (): Promise<Group[]> => {
             return [];
         }
 
-        return data.map(g => ({
+        return data.map((g: any) => ({
             id: g.id.toString(),
             name: g.name,
             members: g.members,
             isActive: g.is_active || false,
             groupPassword: g.group_password,
             createdAt: new Date(g.created_at),
-            createdBy: g.creator_name || 'Unknown', // Προσθήκη userName
+            createdBy: g.creator_name || 'Unknown',
         }));
     } catch (error) {
         console.error('Unexpected error in fetchGroups:', error);
