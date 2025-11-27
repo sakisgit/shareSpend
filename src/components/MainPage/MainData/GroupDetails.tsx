@@ -10,6 +10,7 @@ const GroupDetails = () => {
 
     const {
         groupData, 
+        selectedGroup,
         updateGroupData,
         resetAll
     } = useAppContext();
@@ -185,7 +186,7 @@ const GroupDetails = () => {
                             )}
                         </div>
 
-                        {/*Nickname of Group*/}
+                        {/* Group Name */}
                         <div>
                             <h1 className="font-semibold">🏷️ Group Name:</h1>
                             {isEditMode ? (
@@ -197,8 +198,16 @@ const GroupDetails = () => {
                                     placeholder="Team Alpha"
                                 />
                             ) : (
-                                <p className="text-gray-600">{groupData.groupName}</p>
+                                <p className="text-gray-600">{groupData.groupName || 'No group selected'}</p>
                             )}
+                        </div>
+
+                        {/* Group Password */}
+                        <div>
+                            <h1 className="font-semibold">🔒 Group Password:</h1>
+                            <p className="text-gray-600">
+                                {selectedGroup?.groupPassword || 'N/A'}
+                            </p>
                         </div>
 
                         {/* Active Users */}

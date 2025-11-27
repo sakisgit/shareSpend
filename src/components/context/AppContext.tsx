@@ -6,7 +6,7 @@ import {
     useMemo, 
     useEffect 
 } from "react";
-import {Expense, GroupData } from '../../types/types'
+import {Expense, GroupData, Group } from '../../types/types'
 import { 
     fetchGroupData,
     upsertGroupData,
@@ -14,6 +14,9 @@ import {
     addExpenseToDB,
     deleteExpenseFromDB,
     clearAllExpensesFromDB,
+    fetchGroups, 
+    createGroup, 
+    updateGroupDataFromGroup, 
 } from "../../services/supabaseService";
 
 export interface AppContextType {
@@ -21,6 +24,8 @@ export interface AppContextType {
     groupData:GroupData;
     balance:number;
     userBalance:number;
+    groups: Group[];
+    selectedGroup: Group | null; 
     addExpense: (amount: string, description: string, category: string) => Promise<void>;
     deleteExpense: (id: number) => Promise<void>;
     clearExpenses: () => Promise<void>;
@@ -28,6 +33,9 @@ export interface AppContextType {
     updateGroupData: (data: Partial<GroupData>) => void;
     resetAll: () => Promise<void>;
     settleBalance: () => Promise<void>;
+    createNewGroup: (groupName: string, activeUsers: number) => Promise<void>; // Νέο
+    selectGroup: (groupId: string) => void; // Νέο
+    loadGroups: () => Promise<void>; // Νέο
 };
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -47,6 +55,9 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         totalPaid: 0.00,
         userExpenses: 0.00
     });
+
+    const [groups, setGroups] = useState<Group[]>([]);
+    const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
 
     // Υπολογισμός balance με προστασία από division by zero - memoized για σωστό hot reload
     const balance = useMemo(() => {
@@ -72,6 +83,18 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                 const loadedExpenses= await fetchExpenses();
                 setExpenses(loadedExpenses);
 
+                // Φόρτωσε τα groups
+                const loadedGroups = await fetchGroups();
+                setGroups(loadedGroups);
+
+                // Αν υπάρχει groupName στο groupData, βρες το αντίστοιχο group
+                if (loadedGroupData?.groupName) {
+                    const matchingGroup = loadedGroups.find(g => g.name === loadedGroupData.groupName);
+                    if (matchingGroup) {
+                        setSelectedGroup(matchingGroup);
+                    };
+                };
+
             } catch (error) {
                 console.error('error loading data:', error);
 
@@ -83,6 +106,82 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         loadData();
 
     },[]);
+
+     // ========== GROUP OPERATIONS ==========
+     const createNewGroup = async (groupName: string, activeUsers: number) => {
+        try {
+            console.log('Creating group:', { groupName, activeUsers });
+            
+            // Δημιούργησε το group στη βάση
+            const newGroupData = await createGroup(groupName, activeUsers);
+            
+            if (!newGroupData) {
+                console.error('createGroup returned null');
+                // Το error message έχει ήδη εμφανιστεί από το createGroup
+                return;
+            }
+
+            console.log('Group created successfully:', newGroupData);
+
+            // Ενημέρωσε το groupData με το όνομα και τον αριθμό
+            updateGroupData({
+                groupName: groupName,
+                activeUsers: activeUsers,
+            });
+
+            // Ενημέρωσε το groupData στη βάση
+            await updateGroupDataFromGroup(groupName, activeUsers, newGroupData.groupPassword);
+
+            // Φόρτωσε ξανά τα groups
+            await loadGroups();
+
+            // Επιλέξτε το νέο group ως active
+            const updatedGroups = await fetchGroups();
+            const newGroup = updatedGroups.find(g => g.groupPassword === newGroupData.groupPassword);
+            if (newGroup) {
+                setSelectedGroup(newGroup);
+            } else {
+                console.warn('New group not found in updated groups list');
+            }
+        } catch (error) {
+            console.error('Error in createNewGroup:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            alert(`Error creating group: ${errorMessage}`);
+        }
+    };
+
+    /**
+     * Επιλέγει ένα group και ενημερώνει το groupData
+     */
+    const selectGroup = async (groupId: string) => {
+        const group = groups.find(g => g.id === groupId);
+        if (!group) return;
+
+        setSelectedGroup(group);
+        
+        // Ενημέρωσε το groupData με τα στοιχεία του επιλεγμένου group
+        updateGroupData({
+            groupName: group.name,
+            activeUsers: group.members,
+        });
+
+        // Αποθήκευσε στη βάση
+        if (group.groupPassword) {
+            await updateGroupDataFromGroup(group.name, group.members, group.groupPassword);
+        }
+    };
+
+     /**
+     * Φορτώνει τα groups από τη βάση
+     */
+    const loadGroups = async () => {
+        try {
+            const loadedGroups = await fetchGroups();
+            setGroups(loadedGroups);
+        } catch (error) {
+            console.error('Error loading groups:', error);
+        }
+    };
 
     // ========== AUTO-SAVE GROUP DATA ==========
     // Αποθήκευση στο Supabase κάθε φορά που αλλάζει το groupData
@@ -261,13 +360,18 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         groupData,
         balance,
         userBalance,
+        groups, 
+        selectedGroup, 
         addExpense,
         deleteExpense,
         clearExpenses,
         checkExpense,
         updateGroupData,
         resetAll,
-        settleBalance
+        settleBalance,
+         createNewGroup, 
+        selectGroup, 
+        loadGroups, 
     };
 
     // Show loading state

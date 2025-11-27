@@ -1,43 +1,32 @@
 
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAppContext } from "../../../context/AppContext";
 import CustomButton from "../../../Buttons/CustomButton";
 import CreateGroupModal from "./Modals/CreateGroupModal";
 import JoinGroupModal from "./Modals/JoinGroupModal";
 import LeaveGroupModal from "./Modals/LeaveGroupModal";
 
-interface Group {
-    id:string,
-    name:string,
-    members:number,
-    isActive?: boolean;
-};
-
 const GroupSelector = () => {
-    const [groups, setGroups] = useState<Group[]>([
-    // Mock data για τώρα - θα αντικατασταθεί με real data
-    { id: '1', name: 'Trip to Greece', isActive: true,members:2 },
-    { id: '2', name: 'Weekend Trip', isActive: false, members:5 },
-    { id: '3', name: 'Family Expenses', isActive: false, members:10 },
-  ]);
+    const {
+        groups,
+        selectedGroup,
+        createNewGroup,
+        selectGroup,
+        loadGroups
+    } = useAppContext();
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showJoinModal, setShowJoinModal] = useState(false);
     const [showLeaveModal, setShowLeaveModal] = useState(false);
-    const [selectedGroup, setSelectedGroup]= useState<Group | null>(null);
 
-    const handleCreateGroup = (groupName:string, activeUsers:number) => {
-         // TODO: Call API to create group
+    // Φόρτωσε τα groups όταν mount το component
+    useEffect(() => {
+        loadGroups();
+    }, []);
 
-        console.log('Creating group:', groupName);
-
-        const newGroup: Group = {
-            id:Date.now().toString(),
-            name:groupName,
-            members:activeUsers,
-            isActive: false,
-        };
-
-        setGroups(prev=> [...prev, newGroup]);
+    const handleCreateGroup = async (groupName: string, activeUsers: number) => {
+        await createNewGroup(groupName, activeUsers);
+        setShowCreateModal(false);
     };
 
     const handleJoinGroup = (code: string) => {
@@ -49,16 +38,12 @@ const GroupSelector = () => {
     const handleLeaveGroup = () => {
         if (selectedGroup) {
             // TODO: Call API
-            setGroups(prev => prev.filter(g => g.id !== selectedGroup.id));
-            setSelectedGroup(null);
             alert('You left the group!');
         };
     };
 
     const handleSelectGroup = (groupId: string) => {
-        setGroups(prev => 
-            prev.map(g => ({ ...g, isActive: g.id === groupId }))
-        );
+        selectGroup(groupId);
     };
   
   return (
@@ -108,35 +93,62 @@ const GroupSelector = () => {
                                 handleSelectGroup(group.id);
                             }} 
                             className={`p-4 rounded-lg cursor-pointer transition-all 
-                                ${group.isActive 
+                                ${selectedGroup?.id === group.id
                                 ? 'bg-blue-50 border-2 border-blue-500 shadow-md' 
                                 : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
                             }`} 
                         >
                             <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className={`
-                                w-3 h-3 rounded-full
-                                ${group.isActive ? 'bg-blue-500' : 'bg-gray-300'}
-                                `}></div>
-                                <span className={`font-semibold ${group.isActive ? 'text-blue-700' : 'text-gray-700'}`}>
-                                {group.name}
-                                </span>
-                                <span className={`font-semibold ${group.isActive ? 'text-blue-700' : 'text-gray-700'}`}>
-                                {group.members}
-                                </span>
-                                {group.isActive && (
-                                <span className="text-xs bg-blue-100 text-green-600 px-2 py-1 rounded-full">
-                                    Active
-                                </span>
-                                )}
-                            </div>
-                            {group.isActive && (
+            <div className="flex flex-col gap-2 flex-1">
+                {/* Top row: Name and badges */}
+                <div className="flex items-center gap-3">
+                    <div className={`
+                        w-3 h-3 rounded-full
+                        ${selectedGroup?.id === group.id ? 'bg-blue-500' : 'bg-gray-300'}
+                    `}></div>
+                    <span className={`font-semibold ${selectedGroup?.id === group.id ? 'text-blue-700' : 'text-gray-700'}`}>
+                        {group.name}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                        ({group.members} members)
+                    </span>
+                    {group.groupPassword && (
+                        <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                            {group.groupPassword}
+                        </span>
+                    )}
+                    {selectedGroup?.id === group.id && (
+                        <span className="text-xs bg-blue-100 text-green-600 px-2 py-1 rounded-full">
+                            Active
+                        </span>
+                    )}
+                </div>
+                
+                {/* Bottom row: Date and Created by */}
+                <div className="flex items-center gap-4 text-xs text-gray-500 ml-6">
+                    {group.createdAt && (
+                        <span className="flex items-center gap-1">
+                            📅 {new Date(group.createdAt).toLocaleDateString('el-GR', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                            })}
+                        </span>
+                    )}
+                    {group.createdBy && (
+                        <span className="flex items-center gap-1">
+                            👤 Created by: {group.createdBy}
+                        </span>
+                    )}
+                </div>
+            </div>
+
+
+                            {selectedGroup?.id === group.id  && (
                                 <CustomButton
                                     color="red"
                                     size="sm"
                                     onClick={() => {
-                                        setSelectedGroup(group);
                                         setShowLeaveModal(true);
                                     }}
                                 >
@@ -169,7 +181,6 @@ const GroupSelector = () => {
             isOpen={showLeaveModal}
             onClose= {()=> {
                 setShowLeaveModal(false);
-                setSelectedGroup(null);
             }}  
             onLeave={handleLeaveGroup}
             groupName={selectedGroup?.name || ''}

@@ -7,7 +7,6 @@ export interface GroupData {
     totalGroupExpenses:number,
     totalPaid:number,
     userExpenses:number,
-
 };
 
 export interface Expense {
@@ -17,4 +16,14 @@ export interface Expense {
     category:string,
     userName:string,
     date:Date,
+};
+
+export interface Group {
+    id: string;
+    name: string;
+    members: number;
+    isActive?: boolean;
+    groupPassword?: string; // Group password/code
+    createdAt?: Date;
+    createdBy?: string; 
 };
