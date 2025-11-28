@@ -391,9 +391,16 @@ export const createGroup = async (
             return null;
         }
 
-        // Πάρε το userName από το group_data
+        // Πάρε το userName από το group_data - χρησιμοποίησε ΜΟΝΟ username
         const groupData = await fetchGroupData();
-        const creatorName = groupData?.userName || user.email?.split('@')[0] || 'Unknown';
+        // Αν δεν υπάρχει userName, χρησιμοποίησε 'Unknown' αντί για email
+        const creatorName = groupData?.userName || 'Unknown';
+        
+        // Αν δεν υπάρχει username, ενημέρωσε τον χρήστη
+        if (!groupData?.userName) {
+            alert('Please set your username in Group Details before creating a group.');
+            return null;
+        }
 
         // Function για να δημιουργήσεις το group password
         const generateGroupPassword = (name: string): string => {
@@ -454,7 +461,7 @@ export const createGroup = async (
                 members: activeUsers,
                 group_password: groupPassword,
                 created_at: new Date().toISOString(),
-                creator_name: creatorName,
+                creator_name: creatorName, // Αυτό θα είναι το username αν υπάρχει
             })
             .select('id, group_password')
             .single();
