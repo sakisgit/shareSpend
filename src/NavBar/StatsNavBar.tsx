@@ -64,4 +64,4 @@ const StatsNavBar = () => {
   );
 };
 
-export default StatsNavBar
+export default StatsNavBar;

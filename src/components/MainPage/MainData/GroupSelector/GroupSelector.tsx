@@ -12,7 +12,8 @@ const GroupSelector = () => {
         selectedGroup,
         createNewGroup,
         selectGroup,
-        loadGroups
+        loadGroups,
+        joinGroup, // ✅ Προσθήκη
     } = useAppContext();
 
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -31,10 +32,10 @@ const GroupSelector = () => {
         setShowCreateModal(false);
     };
 
-    const handleJoinGroup = (code: string) => {
-        // TODO: Call API
-
-        alert('You joined the group!'); 
+    const handleJoinGroup = async (code: string) => {
+        // ✅ Ενημέρωση: Καλεί το joinGroup από AppContext
+        await joinGroup(code);
+        setShowJoinModal(false);
     };
 
     const handleLeaveGroup = () => {

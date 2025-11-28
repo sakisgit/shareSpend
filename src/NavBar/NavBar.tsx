@@ -4,11 +4,12 @@ import { useState } from "react";
 
 const navItems = [
   { name: "HomePage", path: "/" },
+  { name: "ShareSpend", path: "/sharespend" },
   { name: "Stats", path: "/stats" },
-  { name: "LogOut", path: "/logoutpage", image: "/assets/LogIcons/log-out.png" },
+  { name: "Contact", path: "/contact" },
 ];
 
-const MainNavBar: React.FC = () => {
+const NavBar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -24,12 +25,7 @@ const MainNavBar: React.FC = () => {
                          before:bg-yellow-500 before:transition-all before:duration-300
                          hover:before:w-full"
             >
-              <Link to={item.path} className="flex items-center gap-2">
-                {item.image && (
-                  <img src={item.image} alt={item.name} className="w-6 h-6" />
-                )}
-                <span>{item.name}</span>
-              </Link>
+              <Link to={item.path}>{item.name}</Link>
             </li>
           ))}
         </ul>
@@ -45,7 +41,7 @@ const MainNavBar: React.FC = () => {
         </button>
       </div>
 
-      {/* Mobile Dropdown Menu */}
+      {/* Mobile Dropdown Menu (Modern) */}
       {isOpen && (
         <div className="md:hidden absolute top-full right-4 mt-2 w-48 z-50">
           <ul className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -54,14 +50,11 @@ const MainNavBar: React.FC = () => {
                 <Link
                   to={item.path}
                   onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-2 px-4 py-3 text-gray-800 hover:bg-gray-100 hover:text-yellow-500 transition-colors duration-200 ${
+                  className={`block px-4 py-3 text-gray-800 hover:bg-gray-100 hover:text-yellow-500 transition-colors duration-200 ${
                     index < navItems.length - 1 ? "border-b border-gray-200" : ""
                   }`}
                 >
-                  {item.image && (
-                    <img src={item.image} alt={item.name} className="w-6 h-6" />
-                  )}
-                  <span>{item.name}</span>
+                  {item.name}
                 </Link>
               </li>
             ))}
@@ -72,4 +65,4 @@ const MainNavBar: React.FC = () => {
   );
 };
 
-export default MainNavBar;
+export default NavBar;

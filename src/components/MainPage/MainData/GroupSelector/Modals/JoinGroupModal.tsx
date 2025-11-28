@@ -21,7 +21,8 @@ const JoinGroupModal = ({
         e.preventDefault();
 
         if (joinCode.trim()) {
-            onJoin(joinCode.trim().toUpperCase());
+            // ΜΗΝ κάνεις toUpperCase - το password μπορεί να έχει μικρά γράμματα και σύμβολα
+            onJoin(joinCode.trim());
             setJoinCode('');
             onClose();
         };
@@ -29,7 +30,8 @@ const JoinGroupModal = ({
 
     const handleButtonClick = () => {
          if (joinCode.trim()) {
-            onJoin(joinCode.trim().toUpperCase());
+            // ΜΗΝ κάνεις toUpperCase - το password μπορεί να έχει μικρά γράμματα και σύμβολα
+            onJoin(joinCode.trim());
             setJoinCode('');
             onClose();
         };
@@ -58,11 +60,11 @@ const JoinGroupModal = ({
                             type="text"
                             value={joinCode}
                             placeholder="Add Code ex 'ABC-1.23'"
-                            maxLength={10}
+                            maxLength={20}
                             autoFocus
                             required
                             className="w-full border border-gray-300 rounded-lg p-2 text-center text-lg font-mono focus:outline-none focus:ring-2 focus:ring-green-500"
-                            onChange={(e)=> setJoinCode(e.target.value.toUpperCase())}
+                            onChange={(e)=> setJoinCode(e.target.value)}
                         />
                         <p className="text-sm text-gray-500 mt-2 text-center">
                             Ask the group owner for the invite code

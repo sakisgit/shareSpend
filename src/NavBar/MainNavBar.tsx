@@ -4,12 +4,11 @@ import { useState } from "react";
 
 const navItems = [
   { name: "HomePage", path: "/" },
-  { name: "ShareSpend", path: "/sharespend" },
   { name: "Stats", path: "/stats" },
-  { name: "Contact", path: "/contact" },
+  { name: "LogOut", path: "/logoutpage", image: "/assets/LogIcons/log-out.png" },
 ];
 
-const NavBar: React.FC = () => {
+const MainNavBar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -25,7 +24,12 @@ const NavBar: React.FC = () => {
                          before:bg-yellow-500 before:transition-all before:duration-300
                          hover:before:w-full"
             >
-              <Link to={item.path}>{item.name}</Link>
+              <Link to={item.path} className="flex items-center gap-2">
+                {item.image && (
+                  <img src={item.image} alt={item.name} className="w-6 h-6" />
+                )}
+                <span>{item.name}</span>
+              </Link>
             </li>
           ))}
         </ul>
@@ -41,7 +45,7 @@ const NavBar: React.FC = () => {
         </button>
       </div>
 
-      {/* Mobile Dropdown Menu (Modern) */}
+      {/* Mobile Dropdown Menu */}
       {isOpen && (
         <div className="md:hidden absolute top-full right-4 mt-2 w-48 z-50">
           <ul className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -50,11 +54,14 @@ const NavBar: React.FC = () => {
                 <Link
                   to={item.path}
                   onClick={() => setIsOpen(false)}
-                  className={`block px-4 py-3 text-gray-800 hover:bg-gray-100 hover:text-yellow-500 transition-colors duration-200 ${
+                  className={`flex items-center gap-2 px-4 py-3 text-gray-800 hover:bg-gray-100 hover:text-yellow-500 transition-colors duration-200 ${
                     index < navItems.length - 1 ? "border-b border-gray-200" : ""
                   }`}
                 >
-                  {item.name}
+                  {item.image && (
+                    <img src={item.image} alt={item.name} className="w-6 h-6" />
+                  )}
+                  <span>{item.name}</span>
                 </Link>
               </li>
             ))}
@@ -65,4 +72,4 @@ const NavBar: React.FC = () => {
   );
 };
 
-export default NavBar;
+export default MainNavBar;
