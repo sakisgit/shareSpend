@@ -234,11 +234,55 @@ export const fetchExpenses = async (): Promise<Expense[]> => {
 };
 
 /**
+ * Φορτώνει τα expenses ενός συγκεκριμένου group
+ * @param groupId - Το ID του group
+ * @returns Array με Expense objects, ή empty array αν error
+ */
+export const fetchExpensesByGroup = async (groupId: string): Promise<Expense[]> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.log('No user found for fetchExpensesByGroup');
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('expenses')
+      .select('*')
+      .eq('group_id', groupId) // Φόρτωσε expenses βάσει group_id
+      .order('date', { ascending: false }); // Νεότερα πρώτα
+
+    if (error) {
+      console.error('Error fetching expenses by group:', error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Μετατροπή από database format σε app format
+    return data.map(exp => ({
+      id: exp.id,
+      amount: exp.amount,
+      description: exp.description,
+      category: exp.category,
+      userName: exp.user_name || '',
+      date: new Date(exp.date),
+      groupId: exp.group_id?.toString() || groupId,
+    }));
+  } catch (error) {
+    console.error('Unexpected error in fetchExpensesByGroup:', error);
+    return [];
+  }
+};
+
+/**
  * Προσθέτει ένα expense στη βάση
  * @param expense - Το Expense object προς αποθήκευση
  * @returns Το ID του expense από τη βάση, ή null αν error
  */
-export const addExpenseToDB = async (expense: Expense): Promise<number | null> => {
+export const addExpenseToDB = async (expense: Expense, groupId?: string): Promise<number | null> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -284,6 +328,7 @@ export const addExpenseToDB = async (expense: Expense): Promise<number | null> =
       .insert({
         user_id: user.id,
         group_data_id: groupData?.id,
+        group_id: groupId || expense.groupId || null, // Προσθήκη group_id
         amount: expense.amount,
         description: expense.description,
         category: expense.category,
@@ -358,6 +403,37 @@ export const clearAllExpensesFromDB = async (): Promise<boolean> => {
   }
 };
 
+/**
+ * Διαγράφει όλα τα expenses ενός συγκεκριμένου group
+ * @param groupId - Το ID του group
+ * @returns true αν επιτυχής, false αν error
+ */
+export const clearExpensesByGroupFromDB = async (groupId: string): Promise<boolean> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error('No user found for clearExpensesByGroupFromDB');
+      return false;
+    }
+
+    const { error } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('group_id', groupId)
+      .eq('user_id', user.id); // Μόνο expenses του logged-in user
+
+    if (error) {
+      console.error('Error clearing expenses by group:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Unexpected error in clearExpensesByGroupFromDB:', error);
+    return false;
+  }
+};
+
 // ========== GROUPS OPERATIONS ==========
 
 /**
@@ -391,16 +467,9 @@ export const createGroup = async (
             return null;
         }
 
-        // Πάρε το userName από το group_data - χρησιμοποίησε ΜΟΝΟ username
+        // Πάρε το userName από το group_data
         const groupData = await fetchGroupData();
-        // Αν δεν υπάρχει userName, χρησιμοποίησε 'Unknown' αντί για email
-        const creatorName = groupData?.userName || 'Unknown';
-        
-        // Αν δεν υπάρχει username, ενημέρωσε τον χρήστη
-        if (!groupData?.userName) {
-            alert('Please set your username in Group Details before creating a group.');
-            return null;
-        }
+        const creatorName = groupData?.userName || user.email?.split('@')[0] || 'Unknown';
 
         // Function για να δημιουργήσεις το group password
         const generateGroupPassword = (name: string): string => {
@@ -461,7 +530,7 @@ export const createGroup = async (
                 members: activeUsers,
                 group_password: groupPassword,
                 created_at: new Date().toISOString(),
-                creator_name: creatorName, // Αυτό θα είναι το username αν υπάρχει
+                creator_name: creatorName,
             })
             .select('id, group_password')
             .single();

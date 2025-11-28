@@ -25,6 +25,7 @@ export interface Expense {
     category:string,
     userName:string,
     date:Date,
+    groupId?: string; // Προσθήκη group_id
 };
 
 export interface Group {

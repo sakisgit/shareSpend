@@ -18,10 +18,8 @@ const MainData = () => {
         <GroupDetails/>
 
         <div className="container mx-auto p-6">
-
             {/* Main middle section with two columns */}
             <div className="flex flex-col md:flex-row gap-8">
-
                 {/* Left div - Add Expenses */}
                 <AddExpense onAddExpense={addExpense}/>
 
@@ -29,10 +27,8 @@ const MainData = () => {
                 <ExpenseList />
             </div>
         </div>
-
         
         <div className="container mx-auto p-6">
-
             {/* Bottom section for totals */}
             <BalanceSummary/>
         </div>
