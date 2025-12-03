@@ -48,8 +48,10 @@ export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const AppContextProvider = ({children}: {children: React.ReactNode}) => {
 
-    const [loading, setLoading]= useState(true);
+    const [loading, setLoading]= useState(false); // Αρχίζει ως false, θα γίνει true μόνο όταν χρειάζεται
     const currentUserIdRef = useRef<string | null>(null);
+    const mountEffectRanRef = useRef(false);
+    const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const [expenses, setExpenses]=useState<Expense[]>([]);
 
@@ -81,7 +83,46 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
     // Καθάρισε τα groupData όταν αλλάζει ο user (logout/login)
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth state change event:', event, 'User:', session?.user?.id || 'none');
             const newUserId = session?.user?.id || null;
+            
+            // Αν είναι SIGNED_OUT, καθάρισε τα δεδομένα και σταμάτησε το loading
+            if (event === 'SIGNED_OUT') {
+                console.log('SIGNED_OUT event detected');
+                currentUserIdRef.current = null;
+                mountEffectRanRef.current = false;
+                setGroupData({
+                    userName: '',
+                    nicknameUser: '',
+                    groupName: '',
+                    activeUsers: 10,
+                    totalGroupExpenses: 0.00,
+                    totalPaid: 0.00,
+                    userExpenses: 0.00
+                });
+                setExpenses([]);
+                setGroups([]);
+                setSelectedGroup(null);
+                setLoading(false);
+                // Clear any pending timeout
+                if (loadingTimeoutRef.current) {
+                    clearTimeout(loadingTimeoutRef.current);
+                    loadingTimeoutRef.current = null;
+                }
+                return;
+            }
+            
+            // Αν είναι INITIAL_SESSION και δεν υπάρχει user, σταμάτησε το loading
+            if (event === 'INITIAL_SESSION' && !newUserId) {
+                console.log('INITIAL_SESSION with no user');
+                setLoading(false);
+                mountEffectRanRef.current = true;
+                if (loadingTimeoutRef.current) {
+                    clearTimeout(loadingTimeoutRef.current);
+                    loadingTimeoutRef.current = null;
+                }
+                return;
+            }
             
             // Αν ο user έχει αλλάξει (όχι απλά login του ίδιου user), καθάρισε τα groupData
             if (currentUserIdRef.current !== null && currentUserIdRef.current !== newUserId && newUserId !== null) {
@@ -107,6 +148,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                 
                 // Φόρτωσε τα δεδομένα του νέου user
                 if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                    mountEffectRanRef.current = true; // Σήμα ότι το auth state change φορτώνει
                     setLoading(true);
                     try {
                         const loadedGroups = await fetchGroups();
@@ -185,17 +227,34 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                         console.error('Error loading data after user change:', error);
                     } finally {
                         setLoading(false);
+                        if (loadingTimeoutRef.current) {
+                            clearTimeout(loadingTimeoutRef.current);
+                            loadingTimeoutRef.current = null;
+                        }
                     }
                 }
-            } else if (newUserId && currentUserIdRef.current === null && event === 'SIGNED_IN') {
-                // Πρώτη φορά login ή re-login (μετά logout) - φόρτωσε τα δεδομένα
+            } else if (newUserId && currentUserIdRef.current === null && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+                // Πρώτη φορά login ή re-login (μετά logout) ή initial session - φόρτωσε τα δεδομένα
+                console.log('Loading data for user:', newUserId, 'Event:', event);
+                mountEffectRanRef.current = true; // Σήμα ότι το auth state change φορτώνει
                 currentUserIdRef.current = newUserId;
                 setLoading(true);
+                
+                // Χρησιμοποίησε timeout για να εξασφαλίσεις ότι το finally τρέχει
+                const timeoutId = setTimeout(() => {
+                    console.warn('Auth state change: Timeout reached, forcing loading to false');
+                    setLoading(false);
+                }, 4000);
+                
                 try {
+                    console.log('Auth state change: Fetching groups...');
                     const loadedGroups = await fetchGroups();
+                    console.log('Auth state change: Groups loaded:', loadedGroups.length);
                     setGroups(loadedGroups);
                     
+                    console.log('Auth state change: Fetching group data...');
                     const loadedGroupData = await fetchGroupData();
+                    console.log('Auth state change: Group data loaded:', loadedGroupData ? 'yes' : 'no');
                     
                     // Φόρτωσε userName/nicknameUser πάντα (ανά user)
                     if (loadedGroupData) {
@@ -204,7 +263,9 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                             const matchingGroup = loadedGroups.find((g: Group) => g.name === loadedGroupData.groupName);
                             if (matchingGroup) {
                                 setSelectedGroup(matchingGroup);
+                                console.log('Auth state change: Fetching expenses for group:', matchingGroup.id);
                                 const groupExpenses = await fetchExpensesByGroup(matchingGroup.id);
+                                console.log('Auth state change: Expenses loaded:', groupExpenses.length);
                                 setExpenses(groupExpenses);
                                 
                                 const totals = groupExpenses.reduce((acc: { totalGroupExpenses: number; userExpenses: number }, exp: Expense) => {
@@ -267,11 +328,18 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                 } catch (error) {
                     console.error('Error loading data after re-login:', error);
                 } finally {
+                    clearTimeout(timeoutId);
+                    console.log('Auth state change: Setting loading to false in finally block');
                     setLoading(false);
+                    if (loadingTimeoutRef.current) {
+                        clearTimeout(loadingTimeoutRef.current);
+                        loadingTimeoutRef.current = null;
+                    }
                 }
-            } else if (event === 'SIGNED_OUT') {
-                // Καθάρισε όλα όταν κάνει logout
+            } else if (!newUserId && currentUserIdRef.current !== null) {
+                // Αν ο user έγινε null (logout) αλλά δεν ήταν SIGNED_OUT event
                 currentUserIdRef.current = null;
+                mountEffectRanRef.current = false;
                 setGroupData({
                     userName: '',
                     nicknameUser: '',
@@ -284,6 +352,20 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                 setExpenses([]);
                 setGroups([]);
                 setSelectedGroup(null);
+                setLoading(false);
+                // Clear any pending timeout
+                if (loadingTimeoutRef.current) {
+                    clearTimeout(loadingTimeoutRef.current);
+                    loadingTimeoutRef.current = null;
+                }
+            } else if (!newUserId && currentUserIdRef.current === null) {
+                // Αν δεν υπάρχει user και δεν είχαμε user πριν, απλά σταμάτησε το loading
+                setLoading(false);
+                // Clear any pending timeout
+                if (loadingTimeoutRef.current) {
+                    clearTimeout(loadingTimeoutRef.current);
+                    loadingTimeoutRef.current = null;
+                }
             }
         });
 
@@ -292,19 +374,94 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
 
     // ========== LOAD DATA ON MOUNT ==========
     useEffect(() => {
+        let isMounted = true;
+        
+        // Safety timeout: αν το loading δεν γίνει false σε 3 δευτερόλεπτα, κάντο manually
+        loadingTimeoutRef.current = setTimeout(() => {
+            if (isMounted) {
+                console.warn('Loading timeout reached, forcing loading to false');
+                setLoading(false);
+                mountEffectRanRef.current = true;
+            }
+        }, 3000);
+
         const loadData= async () => {
-            setLoading(true);
-            try{
-                // Πάρε το current user ID
+            try {
+                console.log('Mount effect: Starting loadData');
+                
+                // Έλεγξε αμέσως αν υπάρχει user (χωρίς delay)
+                const { data: { user: initialUser } } = await supabase.auth.getUser();
+                const initialUserId = initialUser?.id || null;
+                
+                // Αν δεν υπάρχει user, σταμάτησε αμέσως
+                if (!initialUserId) {
+                    console.log('Mount effect: No user found immediately, setting loading to false');
+                    setLoading(false);
+                    mountEffectRanRef.current = true;
+                    if (loadingTimeoutRef.current) {
+                        clearTimeout(loadingTimeoutRef.current);
+                        loadingTimeoutRef.current = null;
+                    }
+                    return;
+                }
+                
+                // Περίμενε λίγο για να δούμε αν το auth state change θα τρέξει πρώτο
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                if (!isMounted) {
+                    console.log('Mount effect: Component unmounted, returning');
+                    return;
+                }
+                
+                // Αν το auth state change έχει ήδη φορτώσει τα δεδομένα, μην φορτώσεις ξανά
+                if (mountEffectRanRef.current) {
+                    console.log('Mount effect: Auth state change already loaded data, skipping');
+                    setLoading(false);
+                    if (loadingTimeoutRef.current) {
+                        clearTimeout(loadingTimeoutRef.current);
+                        loadingTimeoutRef.current = null;
+                    }
+                    return;
+                }
+                
+                // Πάρε το current user ID ξανά (μπορεί να έχει αλλάξει)
                 const { data: { user } } = await supabase.auth.getUser();
                 const userId = user?.id || null;
                 
-                // Αν ο user έχει αλλάξει (από auth state change), μην φορτώσεις
-                if (currentUserIdRef.current !== null && currentUserIdRef.current !== userId) {
+                console.log('Mount effect: User ID:', userId);
+                
+                if (!isMounted) {
                     setLoading(false);
                     return;
                 }
                 
+                // Αν δεν υπάρχει user, μην φορτώσεις δεδομένα
+                if (!userId) {
+                    console.log('Mount effect: No user after delay, setting loading to false');
+                    setLoading(false);
+                    mountEffectRanRef.current = true;
+                    if (loadingTimeoutRef.current) {
+                        clearTimeout(loadingTimeoutRef.current);
+                        loadingTimeoutRef.current = null;
+                    }
+                    return;
+                }
+                
+                // Αν ο user έχει αλλάξει (από auth state change), μην φορτώσεις
+                if (currentUserIdRef.current !== null && currentUserIdRef.current !== userId) {
+                    console.log('Mount effect: User changed, skipping');
+                    setLoading(false);
+                    mountEffectRanRef.current = true;
+                    if (loadingTimeoutRef.current) {
+                        clearTimeout(loadingTimeoutRef.current);
+                        loadingTimeoutRef.current = null;
+                    }
+                    return;
+                }
+                
+                // Μόνο αν υπάρχει user, θέσε loading = true
+                console.log('Mount effect: Setting loading to true and loading data');
+                setLoading(true);
                 currentUserIdRef.current = userId;
                 // Φόρτωσε τα groups πρώτα
                 const loadedGroups = await fetchGroups();
@@ -386,15 +543,31 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                 }
 
             } catch (error) {
-                console.error('error loading data:', error);
-
+                console.error('Mount effect: Error loading data:', error);
             } finally {
-                setLoading(false);
-            };
+                if (isMounted) {
+                    console.log('Mount effect: Setting loading to false in finally block');
+                    setLoading(false);
+                    mountEffectRanRef.current = true;
+                }
+                // Clear the safety timeout
+                if (loadingTimeoutRef.current) {
+                    clearTimeout(loadingTimeoutRef.current);
+                    loadingTimeoutRef.current = null;
+                }
+            }
         };
         
         loadData();
 
+        // Cleanup function
+        return () => {
+            isMounted = false;
+            if (loadingTimeoutRef.current) {
+                clearTimeout(loadingTimeoutRef.current);
+                loadingTimeoutRef.current = null;
+            }
+        };
     },[]);
 
      // ========== GROUP OPERATIONS ==========
@@ -811,6 +984,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
 
     // Show loading state
     if (loading) {
+        console.log('AppContext: Rendering loading spinner');
         return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
                 <img 
@@ -825,6 +999,8 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
             
         );
     }
+    
+    console.log('AppContext: Rendering children, loading =', loading);
 
     return (
         <AppContext.Provider value={value}>

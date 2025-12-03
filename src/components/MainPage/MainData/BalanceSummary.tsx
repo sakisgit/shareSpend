@@ -34,25 +34,40 @@ const BalanceSummary = () => {
                 {isVisible && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700">
                        
-                        {/* Div 1: Balance of Group */}
+                        {/* Div 1: Average Expense Per Person */}
                         <div className="bg-gray-50 p-4 rounded-lg shadow-inner">
-                            <h2 className="font-semibold text-gray-800">💰 Balance of {groupData.groupName}:</h2>
-                            <p className="text-gray-600">{balance.toFixed(2)} €</p>
+                            <h2 className="font-semibold text-gray-800 mb-1">💰 Average Per Person</h2>
+                            <p className="text-xs text-gray-500 mb-2">Total expenses divided by {groupData.activeUsers} members</p>
+                            <p className="text-2xl font-bold text-gray-800">{balance.toFixed(2)} €</p>
+                            <p className="text-xs text-gray-500 mt-1">in {groupData.groupName}</p>
                         </div>
 
-                        {/* Div 2: Balance Per User (με +/-) */}
+                        {/* Div 2: Your Total Expenses */}
                         <div className="bg-gray-50 p-4 rounded-lg shadow-inner">
-                            <h2 className="font-semibold text-gray-800">💰 Balance {groupData.nicknameUser}:</h2>
-                            <p className="text-gray-600">{balance.toFixed(2)} €</p>
+                            <h2 className="font-semibold text-gray-800 mb-1">📊 Your Total Expenses</h2>
+                            <p className="text-xs text-gray-500 mb-2">Sum of all expenses you added</p>
+                            <p className="text-2xl font-bold text-gray-800">{groupData.userExpenses.toFixed(2)} €</p>
+                            <p className="text-xs text-gray-500 mt-1">by {groupData.nicknameUser || 'You'}</p>
                         </div>
                         
 
-                        {/* Div 3: User Balance με Check Button */}
-                        <div  className={`p-4 rounded-lg shadow-inner col-span-1 sm:col-span-2 ${userBalance < 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
+                        {/* Div 3: Your Balance με Check Button */}
+                        <div  className={`p-4 rounded-lg shadow-inner col-span-1 sm:col-span-2 ${userBalance < 0 ? 'bg-red-50 border-2 border-red-200' : userBalance > 0 ? 'bg-green-50 border-2 border-green-200' : 'bg-gray-50'}`}>
                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h2 className="font-semibold text-gray-800">Your Balance:</h2>
-                                    <p className="text-gray-600">{userBalance > 0 ? '+' : ''}{userBalance.toFixed(2)} €</p>
+                                <div className="flex-1">
+                                    <h2 className="font-semibold text-gray-800 mb-1">
+                                        {userBalance < 0 ? '🔴 You Owe' : userBalance > 0 ? '🟢 You Are Owed' : '⚪ Balanced'}
+                                    </h2>
+                                    <p className="text-xs text-gray-500 mb-2">
+                                        {userBalance < 0 
+                                            ? `You need to pay ${Math.abs(userBalance).toFixed(2)} € to balance expenses`
+                                            : userBalance > 0
+                                            ? `Others owe you ${userBalance.toFixed(2)} €`
+                                            : 'Your expenses match the group average'}
+                                    </p>
+                                    <p className="text-3xl font-bold text-gray-800">
+                                        {userBalance > 0 ? '+' : ''}{userBalance.toFixed(2)} €
+                                    </p>
                                 </div>
 
                                 {userBalance < 0 ?(
@@ -85,7 +100,6 @@ const BalanceSummary = () => {
                                 
                            </div>
                         </div>
-                        
                     </div>
                 )}
             </div>
