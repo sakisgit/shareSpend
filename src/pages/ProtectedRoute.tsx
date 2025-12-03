@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
-import { supabase } from '../../supabaseClient/supabaseClient';
+import { supabase } from '../supabaseClient/supabaseClient';
 import React from 'react';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -19,7 +19,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     checkSession();
 
     // Listen για auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       setSession(session);
       setLoading(false);
     });

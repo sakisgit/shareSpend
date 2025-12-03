@@ -1,7 +1,8 @@
 
 import { useState } from "react";
-import { useAppContext } from "../../context/AppContext";
+import { useAppContext } from "../../../contexts/AppContext";
 import CustomButton from "../../Buttons/CustomButton";
+import { fetchGroupSpecificData, upsertGroupSpecificData } from "../../../services/supabaseService";
 
 
 const GroupDetails = () => {
@@ -25,7 +26,7 @@ const GroupDetails = () => {
     };
 
     // Function για να αποθηκεύσεις τις αλλαγές
-    const handleSave = () => {
+    const handleSave = async () => {
         // Εδώ κάνεις validation
         if(!groupData.userName || groupData.userName.length === 0){
             alert('Please enter user name');
@@ -66,7 +67,20 @@ const GroupDetails = () => {
             return;
         }
 
-        // και να στείλεις στο backend αν χρειάζεται
+        // ✅ Αποθήκευση group-specific data αν υπάρχει selectedGroup
+        if (selectedGroup) {
+            const groupSpecificDataMap = await fetchGroupSpecificData();
+            groupSpecificDataMap[selectedGroup.id] = {
+                userName: groupData.userName,
+                nicknameUser: groupData.nicknameUser,
+                groupName: groupData.groupName,
+                activeUsers: groupData.activeUsers,
+                totalGroupExpenses: groupData.totalGroupExpenses,
+                totalPaid: groupData.totalPaid,
+                userExpenses: groupData.userExpenses,
+            };
+            await upsertGroupSpecificData(groupSpecificDataMap);
+        }
 
         updateGroupData(groupData);  // Αποθήκευσε όλα τα δεδομένα
         setIsEditMode(false);

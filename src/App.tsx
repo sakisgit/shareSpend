@@ -1,6 +1,6 @@
 
-import AppContextProvider from "./components/context/AppContext";
-import AppRouter from "./components/pages/AppRouter";
+import AppContextProvider from "./contexts/AppContext";
+import AppRouter from "./pages/AppRouter";
 
 function App() {
   return (

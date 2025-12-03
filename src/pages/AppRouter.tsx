@@ -1,15 +1,15 @@
 
 import { BrowserRouter as Router, Routes , Route , useLocation} from 'react-router-dom';
 import { useEffect } from 'react';
-import ProtectedRoute from '../pages/ProtectedRoute';
-import HomePage from '../homepage/HomePage';
-import ShareSpendPage from '../ShareSpendPage/ShareSpendPage';
-import LogInPage from '../LogPages/LogInPage';
-import MainPage from '../MainPage/MainPage';
-import Stats from '../StatsPage/Stats';
-import Contact from '../Contact/Contact';
-import Help from '../Help/Help';
-import Error from '../ErrorPages/Error';
+import ProtectedRoute from './ProtectedRoute';
+import HomePage from '../components/homepage/HomePage';
+import ShareSpendPage from '../components/ShareSpendPage/ShareSpendPage';
+import LogInPage from '../components/LogPages/LogInPage';
+import MainPage from '../components/MainPage/MainPage';
+import Stats from '../components/StatsPage/Stats';
+import Contact from '../components/Contact/Contact';
+import Help from '../components/Help/Help';
+import Error from '../components/ErrorPages/Error';
 
 const TitleUpdater = () => {
   const location = useLocation();

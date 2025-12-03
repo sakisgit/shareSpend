@@ -1014,3 +1014,44 @@ export const joinGroup = async (groupPassword: string): Promise<Group | null> =>
         return null;
     }
 };
+
+// Προσθήκη μετά το clearExpensesByGroupFromDB function (μετά τη γραμμή 452)
+
+/**
+ * Ενημερώνει τα expenses που έχουν group_id = null με το σωστό group_id
+ * @param groupId - Το ID του group (ως string)
+ * @returns true αν επιτυχής, false αν error
+ */
+export const updateExpensesGroupId = async (groupId: string): Promise<boolean> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error('No user found for updateExpensesGroupId');
+      return false;
+    }
+
+    // Μετατροπή string σε number για το query
+    const groupIdNum = parseInt(groupId, 10);
+    if (isNaN(groupIdNum)) {
+      console.error('Invalid groupId:', groupId);
+      return false;
+    }
+
+    // Ενημέρωσε expenses που έχουν group_id = null και ανήκουν στον user
+    const { error } = await supabase
+      .from('expenses')
+      .update({ group_id: groupIdNum })
+      .eq('user_id', user.id)
+      .is('group_id', null);
+
+    if (error) {
+      console.error('Error updating expenses group_id:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Unexpected error in updateExpensesGroupId:', error);
+    return false;
+  }
+};

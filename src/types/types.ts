@@ -9,8 +9,10 @@ export interface GroupData {
     userExpenses:number,
 };
 
-// Group-specific data (without userName and nicknameUser which are global)
+// Group-specific data (including userName and nicknameUser per group)
 export interface GroupSpecificData {
+    userName: string,
+    nicknameUser: string,
     groupName:string,
     activeUsers:number,
     totalGroupExpenses:number,

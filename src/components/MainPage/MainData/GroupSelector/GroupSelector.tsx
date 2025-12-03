@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useAppContext } from "../../../context/AppContext";
+import { useAppContext } from "../../../../contexts/AppContext";
 import CustomButton from "../../../Buttons/CustomButton";
 import CreateGroupModal from "./Modals/CreateGroupModal";
 import JoinGroupModal from "./Modals/JoinGroupModal";

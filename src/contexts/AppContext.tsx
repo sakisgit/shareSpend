@@ -4,23 +4,27 @@ import {
     useState, 
     useContext, 
     useMemo, 
-    useEffect 
+    useEffect,
+    useRef
 } from "react";
-import {Expense, GroupData, Group } from '../../types/types'
+import { supabase } from '../supabaseClient/supabaseClient';
+import {Expense, GroupData, Group } from '../types/types'
 import { 
     fetchGroupData,
     upsertGroupData,
     fetchExpenses,
-    fetchExpensesByGroup,
     addExpenseToDB,
     deleteExpenseFromDB,
     clearAllExpensesFromDB,
-    clearExpensesByGroupFromDB,
     fetchGroups, 
     createGroup, 
-    updateGroupDataFromGroup,
-    joinGroup,
-} from "../../services/supabaseService";
+    updateGroupDataFromGroup, 
+    fetchExpensesByGroup,
+    updateExpensesGroupId,
+    joinGroup as joinGroupService,
+    fetchGroupSpecificData,
+    upsertGroupSpecificData,
+} from "../services/supabaseService";
 
 export interface AppContextType {
     expenses:Expense[];
@@ -47,6 +51,8 @@ export const AppContext = createContext<AppContextType | undefined>(undefined);
 const AppContextProvider = ({children}: {children: React.ReactNode}) => {
 
     const [loading, setLoading]= useState(true);
+    const [isLoadingData, setIsLoadingData] = useState(false); // ✅ Flag για να μην αποθηκεύουμε κατά τη φόρτωση
+    const isLoadingRef = useRef(false); // ✅ Ref για guard στο loadData
 
     const [expenses, setExpenses]=useState<Expense[]>([]);
 
@@ -74,51 +80,103 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         return groupData.userExpenses - balance;
     }, [groupData.userExpenses, balance]);
 
-    // ========== LOAD DATA ON MOUNT ==========
-    useEffect(() => {
-        const loadData= async () => {
-            setLoading(true);
-            try{
-                const loadedGroupData = await fetchGroupData();
-                if(loadedGroupData) {
-                    setGroupData(loadedGroupData);
-                };
-
-                // Φόρτωσε τα groups
-                const loadedGroups = await fetchGroups();
-                setGroups(loadedGroups);
-
-                // Αν υπάρχει groupName στο groupData, βρες το αντίστοιχο group
-                let matchingGroup: Group | null = null;
-                if (loadedGroupData?.groupName) {
-                    matchingGroup = loadedGroups.find((g: Group) => g.name === loadedGroupData.groupName) || null;
-                    if (matchingGroup) {
-                        setSelectedGroup(matchingGroup);
-                        // Φόρτωσε τα expenses του επιλεγμένου group
-                        const groupExpenses = await fetchExpensesByGroup(matchingGroup.id);
-                        setExpenses(groupExpenses);
-                    } else {
-                        // Αν δεν βρέθηκε group, φόρτωσε όλα τα expenses (fallback)
-                        const loadedExpenses = await fetchExpenses();
-                        setExpenses(loadedExpenses);
-                    }
-                } else {
-                    // Αν δεν υπάρχει groupName, φόρτωσε όλα τα expenses (fallback)
-                    const loadedExpenses = await fetchExpenses();
-                    setExpenses(loadedExpenses);
-                }
-
-            } catch (error) {
-                console.error('error loading data:', error);
-
-            } finally {
-                setLoading(false);
-            };
-        };
+    // ========== LOAD DATA ON MOUNT AND USER CHANGE ==========
+    const loadData = async () => {
+        // ✅ Guard: αν ήδη φορτώνει, μην καλέσεις ξανά
+        if (isLoadingRef.current) {
+            console.log('Already loading, skipping...');
+            return;
+        }
         
-        loadData();
+        isLoadingRef.current = true;
+        setLoading(true);
+        setIsLoadingData(true); // ✅ Set flag για να μην αποθηκεύουμε κατά τη φόρτωση
+        try{
+            // ✅ Καθάρισε το state πριν φορτώσεις νέα δεδομένα
+            setGroupData({
+                userName: '',
+                nicknameUser: '',
+                groupName: '',
+                activeUsers: 10,
+                totalGroupExpenses: 0.00,
+                totalPaid: 0.00,
+                userExpenses: 0.00
+            });
+            setExpenses([]);
+            setGroups([]);
+            setSelectedGroup(null);
 
-    },[]);
+            const loadedGroupData = await fetchGroupData();
+            if(loadedGroupData) {
+                setGroupData(loadedGroupData);
+            };
+
+            const loadedExpenses= await fetchExpenses();
+            setExpenses(loadedExpenses);
+
+            // Φόρτωσε τα groups
+            const loadedGroups = await fetchGroups();
+            setGroups(loadedGroups);
+
+            // Αν υπάρχει groupName στο groupData, βρες το αντίστοιχο group
+            if (loadedGroupData?.groupName) {
+                const matchingGroup = loadedGroups.find((g: Group) => g.name === loadedGroupData.groupName);
+                if (matchingGroup) {
+                    setSelectedGroup(matchingGroup);
+                };
+            };
+
+        } catch (error) {
+            console.error('error loading data:', error);
+
+        } finally {
+            isLoadingRef.current = false;
+            setLoading(false);
+            setIsLoadingData(false); // ✅ Clear flag μετά τη φόρτωση
+        };
+    };
+
+    // ✅ Listen για auth state changes (όταν αλλάζει user)
+    useEffect(() => {
+        let isInitialMount = true; // ✅ Flag για να μην καλέσουμε loadData στο initial mount
+        
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            // Skip το initial mount - το loadData θα καλεστεί από το useEffect παρακάτω
+            if (isInitialMount) {
+                isInitialMount = false;
+                return;
+            }
+            
+            if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+                // Όταν κάνει login νέος user, φόρτωσε τα δεδομένα του
+                console.log('User changed, reloading data...');
+                await loadData();
+            } else if (event === 'SIGNED_OUT') {
+                // Όταν κάνει logout, καθάρισε το state
+                setGroupData({
+                    userName: '',
+                    nicknameUser: '',
+                    groupName: '',
+                    activeUsers: 10,
+                    totalGroupExpenses: 0.00,
+                    totalPaid: 0.00,
+                    userExpenses: 0.00
+                });
+                setExpenses([]);
+                setGroups([]);
+                setSelectedGroup(null);
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
+
+    // ✅ Load data on initial mount
+    useEffect(() => {
+        loadData();
+    }, []);
 
      // ========== GROUP OPERATIONS ==========
      const createNewGroup = async (groupName: string, activeUsers: number) => {
@@ -126,6 +184,17 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
             console.log('Creating group:', { groupName, activeUsers });
             
             const MAX_GROUPS = 5;
+        
+            // ✅ Έλεγχος για userName και nicknameUser πριν δημιουργήσει group
+            if (!groupData.userName || groupData.userName.trim().length === 0) {
+                alert('Please enter your name in Group Details before creating a group.');
+                return;
+            }
+            
+            if (!groupData.nicknameUser || groupData.nicknameUser.trim().length === 0) {
+                alert('Please enter your nickname in Group Details before creating a group.');
+                return;
+            }
         
             // Έλεγχος πριν δημιουργήσει
             if (groups.length >= MAX_GROUPS) {
@@ -144,6 +213,19 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
 
             console.log('Group created successfully:', newGroupData);
 
+            // ✅ Αποθήκευση group-specific data (userName, nicknameUser, κλπ.)
+            const groupSpecificDataMap = await fetchGroupSpecificData();
+            groupSpecificDataMap[newGroupData.id] = {
+                userName: groupData.userName,
+                nicknameUser: groupData.nicknameUser,
+                groupName: groupName,
+                activeUsers: activeUsers,
+                totalGroupExpenses: 0.00,
+                totalPaid: 0.00,
+                userExpenses: 0.00,
+            };
+            await upsertGroupSpecificData(groupSpecificDataMap);
+
             // Ενημέρωσε το groupData με το όνομα και τον αριθμό
             updateGroupData({
                 groupName: groupName,
@@ -161,6 +243,9 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
             const newGroup = updatedGroups.find((g: Group) => g.groupPassword === newGroupData.groupPassword);
             if (newGroup) {
                 setSelectedGroup(newGroup);
+                // ✅ Φόρτωσε τα expenses του group (θα είναι άδειο για νέο group)
+                const groupExpenses = await fetchExpensesByGroup(newGroup.id);
+                setExpenses(groupExpenses);
             } else {
                 console.warn('New group not found in updated groups list');
             };
@@ -182,25 +267,34 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
 
         setSelectedGroup(group);
         
-        // Φόρτωσε τα expenses του group
+        // ✅ Φόρτωσε τα group-specific data (userName, nicknameUser, expenses, κλπ.)
+        const groupSpecificDataMap = await fetchGroupSpecificData();
+        const groupSpecificData = groupSpecificDataMap[groupId];
+        
+        // ✅ Φόρτωσε τα expenses του group
         const groupExpenses = await fetchExpensesByGroup(groupId);
         setExpenses(groupExpenses);
-
-        // Υπολόγισε τα totals από τα expenses
-        const totals = groupExpenses.reduce((acc: { totalGroupExpenses: number; userExpenses: number }, exp: Expense) => {
+        
+        // ✅ Υπολόγισε τα totals από τα expenses
+        const totals = groupExpenses.reduce((acc: { totalGroupExpenses: number; userExpenses: number; totalPaid: number }, exp: Expense) => {
             const amount = parseFloat(exp.amount.replace(',', '.')) || 0;
+            const isUserExpense = exp.userName === (groupSpecificData?.nicknameUser || groupSpecificData?.userName || groupData.nicknameUser || groupData.userName);
             return {
                 totalGroupExpenses: acc.totalGroupExpenses + amount,
-                userExpenses: acc.userExpenses + (exp.userName === (groupData.nicknameUser || groupData.userName) ? amount : 0)
+                userExpenses: acc.userExpenses + (isUserExpense ? amount : 0),
+                totalPaid: acc.totalPaid // TODO: υπολογισμός totalPaid από checked expenses
             };
-        }, { totalGroupExpenses: 0, userExpenses: 0 });
+        }, { totalGroupExpenses: 0, userExpenses: 0, totalPaid: 0 });
         
         // Ενημέρωσε το groupData με τα στοιχεία του επιλεγμένου group
         updateGroupData({
+            userName: groupSpecificData?.userName || groupData.userName || '',
+            nicknameUser: groupSpecificData?.nicknameUser || groupData.nicknameUser || '',
             groupName: group.name,
             activeUsers: group.members,
             totalGroupExpenses: totals.totalGroupExpenses,
-            userExpenses: totals.userExpenses
+            userExpenses: totals.userExpenses,
+            totalPaid: totals.totalPaid,
         });
 
         // Αποθήκευσε στη βάση
@@ -223,17 +317,21 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
 
     // ========== AUTO-SAVE GROUP DATA ==========
     // Αποθήκευση στο Supabase κάθε φορά που αλλάζει το groupData
+    // ✅ ΜΗΝ αποθηκεύεις αν το userName είναι άδειο ή αν φορτώνουμε δεδομένα
     useEffect(() => { 
-        if (!loading && groupData.userName) {
+        if (!loading && !isLoadingData && groupData.userName && groupData.userName.trim().length > 0) {
             const saveGroupData = async () => {
-                await upsertGroupData(groupData);
+                // ✅ Επιπλέον έλεγχος: μην αποθηκεύσεις αν το userName είναι default/empty
+                if (groupData.userName.trim().length > 0) {
+                    await upsertGroupData(groupData);
+                }
             };
             
             // Debounce για να μην κάνει πολλά requests
             const timeoutId = setTimeout(saveGroupData, 500);
             return () => clearTimeout(timeoutId);
         }
-    }, [groupData, loading]);
+    }, [groupData, loading, isLoadingData]);
 
     const addExpense = async (
         amount: string,
@@ -249,14 +347,14 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
             category: category,
             userName: groupData.nicknameUser || groupData.userName || '',
             date: new Date(),
-            groupId: selectedGroup?.id || undefined // Προσθήκη groupId
+            groupId: selectedGroup?.id || undefined, // ✅ Προσθήκη groupId
         };
 
         // Προσθήκη στο local state (optimistic update)
         setExpenses(prev => [newExpense, ...prev]);
 
         // Ενημέρωση groupData
-        setGroupData(prev => ({
+        setGroupData((prev: GroupData) => ({
             ...prev,
             totalGroupExpenses: prev.totalGroupExpenses + amountNumber,
             userExpenses: prev.userExpenses + amountNumber
@@ -277,7 +375,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
             console.error('Error saving expense:', error);
             // Rollback αν αποτύχει
             setExpenses(prev => prev.filter(exp => exp.id !== newExpense.id));
-            setGroupData(prev => ({
+            setGroupData((prev: GroupData) => ({
                 ...prev,
                 totalGroupExpenses: prev.totalGroupExpenses - amountNumber,
                 userExpenses: prev.userExpenses - amountNumber
@@ -293,7 +391,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
 
         // Optimistic update
         setExpenses(prev => prev.filter(exp => exp.id !== id));
-        setGroupData(prev => ({
+        setGroupData((prev: GroupData) => ({
             ...prev,
             totalGroupExpenses: Math.max(0, prev.totalGroupExpenses - amountNumber),
             userExpenses: Math.max(0, prev.userExpenses - amountNumber)
@@ -306,7 +404,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
             console.error('Error deleting expense:', error);
             // Rollback
             setExpenses(prev => [...prev, expense]);
-            setGroupData(prev => ({
+            setGroupData((prev: GroupData) => ({
                 ...prev,
                 totalGroupExpenses: prev.totalGroupExpenses + amountNumber,
                 userExpenses: prev.userExpenses + amountNumber
@@ -317,7 +415,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
     const clearExpenses = async () => {
         // Optimistic update
         setExpenses([]);
-        setGroupData(prev => ({
+        setGroupData((prev: GroupData) => ({
             ...prev,
             totalGroupExpenses: 0.00,
             userExpenses: 0.00
@@ -338,7 +436,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         const amountNumber = parseFloat(expense.amount.replace(',', '.')) || 0;
 
         // Update groupData
-        setGroupData(prev => ({
+        setGroupData((prev: GroupData) => ({
             ...prev,
             totalPaid: prev.totalPaid + amountNumber,
             totalGroupExpenses: prev.totalGroupExpenses + amountNumber,
@@ -350,7 +448,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
     };
 
     const updateGroupData = (data: Partial<GroupData>) => {
-        setGroupData(prev => ({ ...prev, ...data }));
+        setGroupData((prev: GroupData) => ({ ...prev, ...data }));
     };
 
     // Προσθήκη resetAll function που τα καθαρίζει ΟΛΑ
@@ -383,7 +481,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
     const settleBalance = async () => {
         const currentUserExpenses = groupData.userExpenses;
         
-        setGroupData(prev => ({
+        setGroupData((prev: GroupData) => ({
             ...prev,
             totalPaid: prev.totalPaid + currentUserExpenses,
             totalGroupExpenses: 0.00,
@@ -399,7 +497,18 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
      */
     const joinGroupHandler = async (groupPassword: string): Promise<void> => {
         try {
-            const joinedGroup = await joinGroup(groupPassword);
+            // ✅ Έλεγχος για userName και nicknameUser πριν join group
+            if (!groupData.userName || groupData.userName.trim().length === 0) {
+                alert('Please enter your name in Group Details before joining a group.');
+                return;
+            }
+            
+            if (!groupData.nicknameUser || groupData.nicknameUser.trim().length === 0) {
+                alert('Please enter your nickname in Group Details before joining a group.');
+                return;
+            }
+            
+            const joinedGroup = await joinGroupService(groupPassword);
             
             if (!joinedGroup) {
                 // Error message έχει ήδη εμφανιστεί από το joinGroup
@@ -412,26 +521,53 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
             // Επιλέξτε το joined group
             setSelectedGroup(joinedGroup);
             
+            // ✅ Ενημέρωσε expenses που δεν έχουν group_id
+            await updateExpensesGroupId(joinedGroup.id);
+            
+            // ✅ Φόρτωσε τα group-specific data
+            const groupSpecificDataMap = await fetchGroupSpecificData();
+            let groupSpecificData = groupSpecificDataMap[joinedGroup.id];
+            
+            // ✅ Αν δεν υπάρχει group-specific data, δημιούργησε νέο με τα τρέχοντα userName/nicknameUser
+            if (!groupSpecificData) {
+                groupSpecificDataMap[joinedGroup.id] = {
+                    userName: groupData.userName,
+                    nicknameUser: groupData.nicknameUser,
+                    groupName: joinedGroup.name,
+                    activeUsers: joinedGroup.members,
+                    totalGroupExpenses: 0.00,
+                    totalPaid: 0.00,
+                    userExpenses: 0.00,
+                };
+                await upsertGroupSpecificData(groupSpecificDataMap);
+                groupSpecificData = groupSpecificDataMap[joinedGroup.id];
+            }
+            
             // Φόρτωσε τα expenses του group
             const groupExpenses = await fetchExpensesByGroup(joinedGroup.id);
             setExpenses(groupExpenses);
 
             // Υπολόγισε τα totals από τα expenses
-            const totals = groupExpenses.reduce((acc: { totalGroupExpenses: number; userExpenses: number }, exp: Expense) => {
+            const totals = groupExpenses.reduce((acc: { totalGroupExpenses: number; userExpenses: number; totalPaid: number }, exp: Expense) => {
                 const amount = parseFloat(exp.amount.replace(',', '.')) || 0;
+                const isUserExpense = exp.userName === (groupSpecificData?.nicknameUser || groupSpecificData?.userName || groupData.nicknameUser || groupData.userName);
                 return {
                     totalGroupExpenses: acc.totalGroupExpenses + amount,
-                    userExpenses: acc.userExpenses + (exp.userName === (groupData.nicknameUser || groupData.userName) ? amount : 0)
+                    userExpenses: acc.userExpenses + (isUserExpense ? amount : 0),
+                    totalPaid: acc.totalPaid // TODO: υπολογισμός totalPaid από checked expenses
                 };
-            }, { totalGroupExpenses: 0, userExpenses: 0 });
+            }, { totalGroupExpenses: 0, userExpenses: 0, totalPaid: 0 });
 
             // Ενημέρωσε το groupData με τα στοιχεία του joined group
-            setGroupData(prev => ({
+            setGroupData((prev: GroupData) => ({
                 ...prev,
+                userName: groupSpecificData?.userName || prev.userName || '',
+                nicknameUser: groupSpecificData?.nicknameUser || prev.nicknameUser || '',
                 groupName: joinedGroup.name,
                 activeUsers: joinedGroup.members,
                 totalGroupExpenses: totals.totalGroupExpenses,
-                userExpenses: totals.userExpenses
+                userExpenses: totals.userExpenses,
+                totalPaid: totals.totalPaid,
             }));
 
         } catch (error) {
@@ -454,9 +590,9 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         updateGroupData,
         resetAll,
         settleBalance,
-         createNewGroup, 
+        createNewGroup, 
         selectGroup, 
-        loadGroups, 
+        loadGroups,
         joinGroup: joinGroupHandler,
     };
 

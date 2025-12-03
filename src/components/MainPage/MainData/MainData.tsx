@@ -1,5 +1,5 @@
 
-import { useAppContext } from "../../context/AppContext";
+import { useAppContext } from "../../../contexts/AppContext";
 import GroupDetails from "./GroupDetails";
 import AddExpense from "./AddExpense";
 import ExpenseList from "./ExpenseList";

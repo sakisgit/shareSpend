@@ -3,7 +3,7 @@ import { Pie, Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import Footer from "../homepage/Footer/Footer";
 import Header from "../homepage/Header/Header";
-import StatsNavBar from "../../NavBar/StatsNavBar";
+import StatsNavBar from "../NavBar/StatsNavBar";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
