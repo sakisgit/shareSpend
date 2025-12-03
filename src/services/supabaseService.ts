@@ -616,18 +616,7 @@ export const fetchGroups = async (): Promise<Group[]> => {
             return [];
         }
 
-        // 1. Φόρτωσε groups που έχει δημιουργήσει ο user
-        const { data: createdGroups, error: createdError } = await supabase
-            .from('groups')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
-
-        if (createdError) {
-            console.error('Error fetching created groups:', createdError);
-        }
-
-        // 2. Φόρτωσε groups που έχει join ο user (μέσω group_members)
+        // 1. Φόρτωσε groups που έχει join ο user (μέσω group_members) - μόνο active members
         const { data: memberGroups, error: memberError } = await supabase
             .from('group_members')
             .select(`
@@ -641,37 +630,137 @@ export const fetchGroups = async (): Promise<Group[]> => {
             console.error('Error fetching member groups:', memberError);
         }
 
-        // 3. Συνδύασε τα δύο arrays και αφαίρεσε duplicates
-        const allGroupsMap = new Map<string, any>();
+        // 2. Φόρτωσε groups που έχει δημιουργήσει ο user (user_id = user.id)
+        const { data: createdGroups, error: createdError } = await supabase
+            .from('groups')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
 
-        // Προσθήκη created groups
-        if (createdGroups) {
-            createdGroups.forEach((g: any) => {
-                allGroupsMap.set(g.id.toString(), g);
-            });
+        if (createdError) {
+            console.error('Error fetching created groups:', createdError);
         }
 
-        // Προσθήκη joined groups
+        // 3. Δημιούργησε Set με τα group IDs που είναι active members
+        const activeMemberGroupIds = new Set<string>();
         if (memberGroups) {
             memberGroups.forEach((member: any) => {
                 if (member.groups) {
-                    const g = member.groups;
-                    // Αν δεν υπάρχει ήδη (δηλαδή δεν το έχει δημιουργήσει), πρόσθεσέ το
-                    if (!allGroupsMap.has(g.id.toString())) {
-                        allGroupsMap.set(g.id.toString(), g);
-                    }
+                    activeMemberGroupIds.add(member.groups.id.toString());
                 }
             });
         }
 
-        // 4. Μετατροπή σε Group array
-        const groupsArray = Array.from(allGroupsMap.values());
+        // 4. Ελέγχουμε για ΟΛΑ τα groups αν έχουν κάνει leave (όχι μόνο created)
+        // Αν ένα group έχει record στο group_members με is_active=false, 
+        // σημαίνει ότι έχει κάνει leave και δεν θα το εμφανίζουμε
+        const leftGroupIds = new Set<string>();
+        
+        // Φόρτωσε ΟΛΑ τα records από group_members με is_active=false για αυτόν τον user
+        console.log('fetchGroups: Fetching left groups for user', user.id);
+        const { data: leftGroupsData, error: leftGroupsError } = await supabase
+            .from('group_members')
+            .select('group_id')
+            .eq('user_id', user.id)
+            .eq('is_active', false);
 
-        if (groupsArray.length === 0) {
+        if (leftGroupsError) {
+            console.error('Error fetching left groups:', leftGroupsError);
+            console.error('Error details:', {
+                message: leftGroupsError.message,
+                code: leftGroupsError.code,
+                details: leftGroupsError.details
+            });
+        } else {
+            console.log('fetchGroups: Query for left groups successful, returned', leftGroupsData?.length || 0, 'records');
+        }
+
+        if (leftGroupsData) {
+            console.log('fetchGroups: Found', leftGroupsData.length, 'groups that user has left');
+            leftGroupsData.forEach((item: any) => {
+                // Βεβαιώσου ότι το group_id είναι string για consistency
+                const groupIdStr = typeof item.group_id === 'number' 
+                    ? item.group_id.toString() 
+                    : item.group_id.toString();
+                leftGroupIds.add(groupIdStr);
+                console.log('fetchGroups: Added to leftGroupIds:', groupIdStr, '(type:', typeof item.group_id, ')');
+            });
+        } else {
+            console.log('fetchGroups: No left groups found (leftGroupsData is null or empty)');
+        }
+        
+        console.log('fetchGroups: Total leftGroupIds:', leftGroupIds.size, Array.from(leftGroupIds));
+
+        // 5. Συνδύασε τα δύο arrays - μόνο groups όπου ο user είναι active member
+        const allGroupsMap = new Map<string, any>();
+
+        // Προσθήκη joined groups (active members) - αλλά ελέγξε πρώτα αν έχουν κάνει leave
+        if (memberGroups) {
+            memberGroups.forEach((member: any) => {
+                if (member.groups) {
+                    const g = member.groups;
+                    const groupIdStr = g.id.toString();
+                    
+                    // Ελέγχουμε αν έχει κάνει leave - αν ναι, δεν το προσθέτουμε
+                    if (leftGroupIds.has(groupIdStr)) {
+                        console.log('fetchGroups: Member group', g.name, '(id:', groupIdStr, ') was left, skipping');
+                        return; // Skip this group
+                    }
+                    
+                    console.log('fetchGroups: Adding active member group', g.name, '(id:', groupIdStr, ')');
+                    allGroupsMap.set(groupIdStr, g);
+                }
+            });
+        }
+
+        // Προσθήκη created groups - μόνο αν δεν έχουν κάνει leave
+        if (createdGroups) {
+            createdGroups.forEach((g: any) => {
+                const groupIdStr = g.id.toString();
+                
+                // ΠΡΩΤΑ: Ελέγχουμε αν έχει κάνει leave - αν ναι, δεν το προσθέτουμε
+                if (leftGroupIds.has(groupIdStr)) {
+                    // Creator που έχει κάνει leave - δεν το προσθέτουμε
+                    console.log('fetchGroups: Group', g.name, '(id:', groupIdStr, ') was left, skipping');
+                    return; // Skip this group
+                }
+                
+                // ΔΕΥΤΕΡΑ: Αν είναι active member, το προσθέτουμε (ήδη προστέθηκε από memberGroups)
+                if (activeMemberGroupIds.has(groupIdStr)) {
+                    // Ήδη προστέθηκε από memberGroups
+                    console.log('fetchGroups: Group', g.name, '(id:', groupIdStr, ') is active member, already added');
+                    return; // Already added, skip
+                }
+                
+                // ΤΡΙΤΑ: Creator που δεν έχει κάνει leave και δεν είναι active member
+                // Αυτό σημαίνει ότι είναι creator που δεν έχει join το δικό του group
+                // Σε αυτή την περίπτωση, το προσθέτουμε
+                console.log('fetchGroups: Group', g.name, '(id:', groupIdStr, ') is created by user and not left, adding');
+                allGroupsMap.set(groupIdStr, g);
+            });
+        }
+
+        // 6. Μετατροπή σε Group array και τελικό φιλτράρισμα
+        const groupsArray = Array.from(allGroupsMap.values());
+        
+        // Τελικό φιλτράρισμα: αφαίρεσε οποιαδήποτε group που έχει κάνει leave
+        const finalGroups = groupsArray.filter((g: any) => {
+            const groupIdStr = g.id.toString();
+            const wasLeft = leftGroupIds.has(groupIdStr);
+            if (wasLeft) {
+                console.log('fetchGroups: Final filter - removing group', g.name, '(id:', groupIdStr, ') because it was left');
+            }
+            return !wasLeft;
+        });
+
+        console.log('fetchGroups: Final groups count:', finalGroups.length, 'out of', groupsArray.length, 'before filtering');
+
+        if (finalGroups.length === 0) {
+            console.log('fetchGroups: No groups to return');
             return [];
         }
 
-        return groupsArray.map((g: any) => ({
+        return finalGroups.map((g: any) => ({
             id: g.id.toString(),
             name: g.name,
             members: g.members,
@@ -1035,5 +1124,118 @@ export const joinGroup = async (groupPassword: string): Promise<Group | null> =>
         console.error('Unexpected error in joinGroup:', error);
         alert('An unexpected error occurred. Please try again.');
         return null;
+    }
+};
+
+/**
+ * Αφαιρεί τον logged-in user από ένα group
+ * @param groupId - Το ID του group (ως string)
+ * @returns true αν επιτυχής, false αν error
+ */
+export const leaveGroup = async (groupId: string): Promise<boolean> => {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            console.error('No user found for leaveGroup');
+            alert('No user found. Please log in again.');
+            return false;
+        }
+
+        console.log('leaveGroup: Removing user', user.id, 'from group', groupId);
+
+        // Μετατροπή string σε number για το query
+        const groupIdNum = parseInt(groupId, 10);
+        if (isNaN(groupIdNum)) {
+            console.error('leaveGroup: Invalid groupId:', groupId);
+            return false;
+        }
+
+        // 1. Ελέγχουμε αν υπάρχει record στο group_members
+        const { data: existingMember } = await supabase
+            .from('group_members')
+            .select('id, is_active')
+            .eq('group_id', groupIdNum)
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (existingMember) {
+            // Αν υπάρχει record, κάνουμε update το is_active σε false
+            console.log('leaveGroup: Found existing member record, updating is_active to false');
+            const { error: memberError } = await supabase
+                .from('group_members')
+                .update({ is_active: false })
+                .eq('id', existingMember.id);
+
+            if (memberError) {
+                console.error('leaveGroup: Error updating group_members:', memberError);
+            } else {
+                console.log('leaveGroup: Successfully updated member record to is_active=false');
+            }
+        } else {
+            // Αν δεν υπάρχει record, μπορεί να είναι creator
+            // Προσθέτουμε record με is_active=false για να σηματοδοτήσουμε ότι έχει κάνει leave
+            console.log('leaveGroup: No existing member record, inserting new record with is_active=false');
+            const { error: insertError } = await supabase
+                .from('group_members')
+                .insert({
+                    group_id: groupIdNum,
+                    user_id: user.id,
+                    is_active: false,
+                    joined_at: new Date().toISOString(),
+                });
+
+            if (insertError) {
+                console.error('leaveGroup: Error inserting group_members record:', insertError);
+                // Continue even if this fails
+            } else {
+                console.log('leaveGroup: Successfully inserted member record with is_active=false');
+            }
+        }
+
+        // 2. Διαγραφή των expenses του user από αυτό το group
+        console.log('leaveGroup: Deleting user expenses from group', groupIdNum);
+        const { data: deletedExpenses, error: expensesError } = await supabase
+            .from('expenses')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('group_id', groupIdNum)
+            .select();
+
+        if (expensesError) {
+            console.error('leaveGroup: Error deleting expenses:', expensesError);
+            // Continue even if this fails
+        } else {
+            const deletedCount = deletedExpenses?.length || 0;
+            console.log('leaveGroup: Successfully deleted', deletedCount, 'expenses from group');
+        }
+
+        // 3. Ενημέρωσε το group_data να μην έχει groupName (αν το group που αφήνει είναι το selected)
+        const currentGroupData = await fetchGroupData();
+        if (currentGroupData && currentGroupData.groupName) {
+            // Βρες το group για να δεις αν είναι το ίδιο
+            const { data: groupData } = await supabase
+                .from('groups')
+                .select('name')
+                .eq('id', groupIdNum)
+                .single();
+
+            if (groupData && groupData.name === currentGroupData.groupName) {
+                // Ενημέρωσε το group_data να καθαρίσει το groupName
+                await upsertGroupData({
+                    ...currentGroupData,
+                    groupName: '',
+                    activeUsers: 10,
+                    totalGroupExpenses: 0.00,
+                    userExpenses: 0.00,
+                });
+            }
+        }
+
+        console.log('leaveGroup: Successfully left group!');
+        return true;
+    } catch (error) {
+        console.error('Unexpected error in leaveGroup:', error);
+        alert('An unexpected error occurred while leaving the group. Please try again.');
+        return false;
     }
 };

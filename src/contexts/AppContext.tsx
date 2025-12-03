@@ -22,6 +22,7 @@ import {
     fetchExpensesByGroup,
     updateExpensesGroupId,
     joinGroup as joinGroupService,
+    leaveGroup as leaveGroupService,
 } from "../services/supabaseService";
 
 export interface AppContextType {
@@ -42,6 +43,7 @@ export interface AppContextType {
     selectGroup: (groupId: string) => void;
     loadGroups: () => Promise<void>;
     joinGroup: (groupPassword: string) => Promise<void>;
+    leaveGroup: (groupId: string) => Promise<void>;
 };
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -238,23 +240,66 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                 console.log('Loading data for user:', newUserId, 'Event:', event);
                 mountEffectRanRef.current = true; // Σήμα ότι το auth state change φορτώνει
                 currentUserIdRef.current = newUserId;
+                
+                // Καθάρισε το mount effect timeout αν υπάρχει
+                if (loadingTimeoutRef.current) {
+                    clearTimeout(loadingTimeoutRef.current);
+                    loadingTimeoutRef.current = null;
+                }
+                
                 setLoading(true);
                 
+                // Helper function για timeout - ορίζεται πριν το try block
+                const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, errorMsg: string): Promise<T> => {
+                    return Promise.race([
+                        promise,
+                        new Promise<T>((_, reject) => 
+                            setTimeout(() => reject(new Error(`${errorMsg} (timeout after ${timeoutMs}ms)`)), timeoutMs)
+                        )
+                    ]);
+                };
+                
                 // Χρησιμοποίησε timeout για να εξασφαλίσεις ότι το finally τρέχει
-                const timeoutId = setTimeout(() => {
-                    console.warn('Auth state change: Timeout reached, forcing loading to false');
-                    setLoading(false);
-                }, 4000);
+                // Αποθήκευσε το στο loadingTimeoutRef για να μπορεί να καθαριστεί
+                // Μειώσαμε το timeout σε 8 δευτερόλεπτα (από 10s) αφού μειώσαμε τα individual timeouts
+                loadingTimeoutRef.current = setTimeout(() => {
+                    if (loadingTimeoutRef.current) {
+                        console.warn('Auth state change: Timeout reached (8s), forcing loading to false');
+                        setLoading(false);
+                        loadingTimeoutRef.current = null;
+                    }
+                }, 8000);
                 
                 try {
-                    console.log('Auth state change: Fetching groups...');
-                    const loadedGroups = await fetchGroups();
+                    // Φόρτωσε groups και groupData παράλληλα για να γίνει πιο γρήγορα
+                    console.log('Auth state change: Fetching groups and group data in parallel...');
+                    const [loadedGroups, loadedGroupData] = await Promise.all([
+                        withTimeout(
+                            fetchGroups().catch((error) => {
+                                console.error('Auth state change: Error in fetchGroups:', error);
+                                return [];
+                            }),
+                            5000, // Μειώσαμε από 8s σε 5s
+                            'fetchGroups timeout'
+                        ).catch((error) => {
+                            console.error('Auth state change: fetchGroups failed or timed out:', error);
+                            return [];
+                        }),
+                        withTimeout(
+                            fetchGroupData().catch((error) => {
+                                console.error('Auth state change: Error in fetchGroupData:', error);
+                                return null;
+                            }),
+                            3000, // Μειώσαμε από 5s σε 3s
+                            'fetchGroupData timeout'
+                        ).catch((error) => {
+                            console.error('Auth state change: fetchGroupData failed or timed out:', error);
+                            return null;
+                        })
+                    ]);
                     console.log('Auth state change: Groups loaded:', loadedGroups.length);
-                    setGroups(loadedGroups);
-                    
-                    console.log('Auth state change: Fetching group data...');
-                    const loadedGroupData = await fetchGroupData();
                     console.log('Auth state change: Group data loaded:', loadedGroupData ? 'yes' : 'no');
+                    setGroups(loadedGroups);
                     
                     // Φόρτωσε userName/nicknameUser πάντα (ανά user)
                     if (loadedGroupData) {
@@ -264,7 +309,17 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                             if (matchingGroup) {
                                 setSelectedGroup(matchingGroup);
                                 console.log('Auth state change: Fetching expenses for group:', matchingGroup.id);
-                                const groupExpenses = await fetchExpensesByGroup(matchingGroup.id);
+                                const groupExpenses: Expense[] = await withTimeout(
+                                    fetchExpensesByGroup(matchingGroup.id).catch((error) => {
+                                        console.error('Auth state change: Error in fetchExpensesByGroup:', error);
+                                        return [];
+                                    }),
+                                    3000, // Μειώσαμε από 5s σε 3s
+                                    'fetchExpensesByGroup timeout'
+                                ).catch((error) => {
+                                    console.error('Auth state change: fetchExpensesByGroup failed or timed out:', error);
+                                    return [];
+                                }) as Expense[];
                                 console.log('Auth state change: Expenses loaded:', groupExpenses.length);
                                 setExpenses(groupExpenses);
                                 
@@ -325,16 +380,32 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                         });
                         setExpenses([]);
                     }
+                    
+                    console.log('Auth state change: All data loaded successfully');
                 } catch (error) {
                     console.error('Error loading data after re-login:', error);
+                    // Σε περίπτωση error, βεβαιώσου ότι τα βασικά state είναι set
+                    setGroupData({
+                        userName: '',
+                        nicknameUser: '',
+                        groupName: '',
+                        activeUsers: 10,
+                        totalGroupExpenses: 0.00,
+                        totalPaid: 0.00,
+                        userExpenses: 0.00
+                    });
+                    setExpenses([]);
+                    setGroups([]);
+                    setSelectedGroup(null);
                 } finally {
-                    clearTimeout(timeoutId);
-                    console.log('Auth state change: Setting loading to false in finally block');
-                    setLoading(false);
+                    // Καθάρισε το timeout - αυτό πρέπει να τρέξει πάντα
                     if (loadingTimeoutRef.current) {
                         clearTimeout(loadingTimeoutRef.current);
                         loadingTimeoutRef.current = null;
                     }
+                    console.log('Auth state change: Setting loading to false in finally block');
+                    setLoading(false);
+                    console.log('Auth state change: Loading set to false, component should render now');
                 }
             } else if (!newUserId && currentUserIdRef.current !== null) {
                 // Αν ο user έγινε null (logout) αλλά δεν ήταν SIGNED_OUT event
@@ -376,14 +447,15 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
     useEffect(() => {
         let isMounted = true;
         
-        // Safety timeout: αν το loading δεν γίνει false σε 3 δευτερόλεπτα, κάντο manually
+        // Safety timeout: αν το loading δεν γίνει false σε 6 δευτερόλεπτα, κάντο manually
+        // Μειώσαμε από 5s σε 6s για να δώσουμε λίγο περισσότερο χρόνο αλλά όχι πολύ
         loadingTimeoutRef.current = setTimeout(() => {
-            if (isMounted) {
-                console.warn('Loading timeout reached, forcing loading to false');
+            if (isMounted && !mountEffectRanRef.current) {
+                console.warn('Mount effect: Loading timeout reached, forcing loading to false');
                 setLoading(false);
                 mountEffectRanRef.current = true;
             }
-        }, 3000);
+        }, 6000);
 
         const loadData= async () => {
             try {
@@ -406,7 +478,8 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                 }
                 
                 // Περίμενε λίγο για να δούμε αν το auth state change θα τρέξει πρώτο
-                await new Promise(resolve => setTimeout(resolve, 300));
+                // Μειώσαμε το delay από 300ms σε 100ms για πιο γρήγορο loading
+                await new Promise(resolve => setTimeout(resolve, 100));
                 
                 if (!isMounted) {
                     console.log('Mount effect: Component unmounted, returning');
@@ -463,12 +536,19 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                 console.log('Mount effect: Setting loading to true and loading data');
                 setLoading(true);
                 currentUserIdRef.current = userId;
-                // Φόρτωσε τα groups πρώτα
-                const loadedGroups = await fetchGroups();
+                
+                // Φόρτωσε groups και groupData παράλληλα για πιο γρήγορο loading
+                const [loadedGroups, loadedGroupData] = await Promise.all([
+                    fetchGroups().catch((error) => {
+                        console.error('Mount effect: Error in fetchGroups:', error);
+                        return [];
+                    }),
+                    fetchGroupData().catch((error) => {
+                        console.error('Mount effect: Error in fetchGroupData:', error);
+                        return null;
+                    })
+                ]);
                 setGroups(loadedGroups);
-
-                // Φόρτωσε groupData (κάθε user έχει το δικό του groupData)
-                const loadedGroupData = await fetchGroupData();
                 
                 // Φόρτωσε userName/nicknameUser πάντα (ανά user)
                 if (loadedGroupData) {
@@ -962,6 +1042,65 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         }
     };
 
+    /**
+     * Leave group handler
+     */
+    const leaveGroupHandler = async (groupId: string): Promise<void> => {
+        try {
+            // Βρες το όνομα του group πριν το αφήσεις (για το μήνυμα)
+            const groupToLeave = groups.find(g => g.id === groupId);
+            const groupName = groupToLeave?.name || 'the group';
+            
+            const success = await leaveGroupService(groupId);
+            
+            if (!success) {
+                alert('Αποτυχία αποχώρησης από το group. Παρακαλώ δοκίμασε ξανά.');
+                return;
+            }
+
+            // Καθάρισε το selected group αν είναι το ίδιο
+            if (selectedGroup?.id === groupId) {
+                setSelectedGroup(null);
+                setExpenses([]);
+                
+                // Ενημέρωσε το groupData να μην έχει groupName
+                setGroupData((prev: GroupData) => ({
+                    ...prev,
+                    groupName: '',
+                    activeUsers: 10,
+                    totalGroupExpenses: 0.00,
+                    userExpenses: 0.00,
+                }));
+            }
+
+            // Φόρτωσε ξανά τα groups για να ενημερωθεί η λίστα (το group δεν θα εμφανίζεται πια)
+            console.log('leaveGroupHandler: Reloading groups after leave, groupId:', groupId);
+            
+            // Περίμενε λίγο για να ολοκληρωθεί το update στη βάση
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            const updatedGroups = await fetchGroups();
+            console.log('leaveGroupHandler: Updated groups count:', updatedGroups.length);
+            console.log('leaveGroupHandler: Updated groups IDs:', updatedGroups.map(g => g.id));
+            
+            // Αν το group που αφήσαμε είναι ακόμα στη λίστα, αφαίρεσέ το manually
+            const filteredGroups = updatedGroups.filter(g => g.id !== groupId);
+            if (filteredGroups.length !== updatedGroups.length) {
+                console.log('leaveGroupHandler: Group still in list after fetchGroups, removing manually');
+                setGroups(filteredGroups);
+            } else {
+                console.log('leaveGroupHandler: Group successfully removed from list');
+                setGroups(updatedGroups);
+            }
+
+            // Εμφάνισε επιβεβαιωτικό μήνυμα
+            alert(`Επιτυχής αποχώρηση από το group "${groupName}"!\n\nΤο group δεν εμφανίζεται πια στα "My Groups" και τα έξοδά σου έχουν διαγραφεί.`);
+        } catch (error) {
+            console.error('Error in leaveGroupHandler:', error);
+            alert('Προέκυψε σφάλμα κατά την αποχώρηση από το group. Παρακαλώ δοκίμασε ξανά.');
+        }
+    };
+
     const value: AppContextType = {
         expenses,
         groupData,
@@ -980,6 +1119,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         selectGroup, 
         loadGroups,
         joinGroup: joinGroupHandler,
+        leaveGroup: leaveGroupHandler,
     };
 
     // Show loading state

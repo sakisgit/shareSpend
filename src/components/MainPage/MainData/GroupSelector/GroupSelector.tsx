@@ -13,7 +13,8 @@ const GroupSelector = () => {
         createNewGroup,
         selectGroup,
         loadGroups,
-        joinGroup, // ✅ Προσθήκη
+        joinGroup,
+        leaveGroup,
     } = useAppContext();
 
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -38,10 +39,10 @@ const GroupSelector = () => {
         setShowJoinModal(false);
     };
 
-    const handleLeaveGroup = () => {
+    const handleLeaveGroup = async () => {
         if (selectedGroup) {
-            // TODO: Call API
-            alert('You left the group!');
+            await leaveGroup(selectedGroup.id);
+            setShowLeaveModal(false);
         };
     };
 
