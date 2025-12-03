@@ -25,6 +25,7 @@ export interface Expense {
     category:string,
     userName:string,
     date:Date,
+    groupId?: string; // Optional group ID
 };
 
 export interface Group {
@@ -33,6 +34,7 @@ export interface Group {
     members: number;
     isActive?: boolean;
     groupPassword?: string; // Group password/code
+    groupNumber?: string | number; // Group number
     createdAt?: Date;
     createdBy?: string; 
 };

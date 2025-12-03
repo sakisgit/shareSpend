@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useAppContext } from "../../context/AppContext";
+import { useAppContext } from "../../../contexts/AppContext";
 import CustomButton from "../../Buttons/CustomButton";
 
 
@@ -202,11 +202,11 @@ const GroupDetails = () => {
                             )}
                         </div>
 
-                        {/* Group Number - ΝΕΟ */}
+                        {/* Group Password */}
                         <div>
-                            <h1 className="font-semibold">🔢 Group Number:</h1>
+                            <h1 className="font-semibold">🔑 Group Password:</h1>
                             <p className="text-gray-600">
-                                {selectedGroup?.groupNumber || 'N/A'}
+                                {selectedGroup?.groupPassword || 'N/A'}
                             </p>
                         </div>
 

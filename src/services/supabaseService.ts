@@ -203,10 +203,12 @@ export const fetchExpenses = async (): Promise<Expense[]> => {
       return [];
     }
 
+    // Φόρτωσε μόνο expenses που ΔΕΝ έχουν group_id (null) - δηλαδή expenses που δεν ανήκουν σε group
     const { data, error } = await supabase
       .from('expenses')
       .select('*')
       .eq('user_id', user.id)
+      .is('group_id', null) // Μόνο expenses χωρίς group_id
       .order('date', { ascending: false }); // Νεότερα πρώτα
 
     if (error) {
@@ -414,6 +416,45 @@ export const clearAllExpensesFromDB = async (): Promise<boolean> => {
 };
 
 /**
+ * Ενημερώνει τα expenses που δεν έχουν group_id με το group_id του joined group
+ * @param groupId - Το ID του group (ως string)
+ * @returns true αν επιτυχής, false αν error
+ */
+export const updateExpensesGroupId = async (groupId: string): Promise<boolean> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error('No user found for updateExpensesGroupId');
+      return false;
+    }
+
+    // Μετατροπή string σε number για το query
+    const groupIdNum = parseInt(groupId, 10);
+    if (isNaN(groupIdNum)) {
+      console.error('Invalid groupId:', groupId);
+      return false;
+    }
+
+    // Ενημέρωσε expenses που δεν έχουν group_id (null) ή έχουν null group_id
+    const { error } = await supabase
+      .from('expenses')
+      .update({ group_id: groupIdNum })
+      .eq('user_id', user.id)
+      .is('group_id', null);
+
+    if (error) {
+      console.error('Error updating expenses group_id:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Unexpected error in updateExpensesGroupId:', error);
+    return false;
+  }
+};
+
+/**
  * Διαγράφει όλα τα expenses ενός συγκεκριμένου group
  * @param groupId - Το ID του group (ως string)
  * @returns true αν επιτυχής, false αν error
@@ -489,55 +530,36 @@ export const createGroup = async (
         const creatorName = groupData?.userName || user.email?.split('@')[0] || 'Unknown';
 
         // Function για να δημιουργήσεις το group password
-        const generateGroupPassword = (name: string): string => {
-            // 1. Εξάγει μόνο τα γράμματα από το όνομα (uppercase, χωρίς spaces/symbols)
-            const lettersOnly = name.replace(/[^A-Za-z]/g, '').toUpperCase();
+        // 5-10 χαρακτήρες με νούμερα, γράμματα και σύμβολα, ξεκινάει με #
+        const generateGroupPassword = (): string => {
+            // Τυχαίος αριθμός μεταξύ 5-10 (συνολικά χαρακτήρες, συμπεριλαμβανομένου του #)
+            const length = Math.floor(Math.random() * 6) + 5; // 5-10
             
-            // Αν δεν υπάρχουν αρκετά γράμματα, χρησιμοποίησε defaults
-            const availableLetters = lettersOnly.length >= 3 
-                ? lettersOnly 
-                : 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            // Χαρακτήρες που μπορούν να χρησιμοποιηθούν (μετά το #)
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+            const numbers = '0123456789';
+            const symbols = '!@$%^&*()_+-=[]{}|;:,.<>?';
+            const allChars = letters + numbers + symbols;
             
-            // 2. Επιλέγει 3 τυχαία γράμματα
-            const getRandomLetters = (str: string, count: number): string => {
-                const letters: string[] = [];
-                const strArray = str.split('');
-                for (let i = 0; i < count; i++) {
-                    const randomIndex = Math.floor(Math.random() * strArray.length);
-                    letters.push(strArray[randomIndex]);
-                    strArray.splice(randomIndex, 1); // Αφαίρεσε το γράμμα για να μην επαναληφθεί
-                }
-                return letters.join('');
-            };
-            
-            const threeLetters = getRandomLetters(availableLetters, 3);
-            
-            // 3. Δημιούργησε 6 τυχαία νούμερα
-            const sixNumbers = Array.from({ length: 6 }, () => 
-                Math.floor(Math.random() * 10)
-            ).join('');
-            
-            // 4. Δημιούργησε 3 τυχαία σύμβολα
-            const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
-            const threeSymbols = Array.from({ length: 3 }, () => 
-                symbols[Math.floor(Math.random() * symbols.length)]
-            ).join('');
-            
-            // 5. Συνδύασε όλα: 3 γράμματα + 6 νούμερα + 3 σύμβολα = 12 χαρακτήρες
-            const allChars = (threeLetters + sixNumbers + threeSymbols).split('');
-            
-            // 6. Ανακατέψε σε τυχαία σειρά (Fisher-Yates shuffle)
-            for (let i = allChars.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [allChars[i], allChars[j]] = [allChars[j], allChars[i]];
+            // Δημιούργησε τυχαίους χαρακτήρες (length - 1 γιατί το # μετράει)
+            const passwordChars: string[] = [];
+            for (let i = 0; i < length - 1; i++) {
+                const randomIndex = Math.floor(Math.random() * allChars.length);
+                passwordChars.push(allChars[randomIndex]);
             }
             
-            // 7. Προσθέτει # στην αρχή
-            return '#' + allChars.join('');
+            // Ανακατέψε τους χαρακτήρες
+            for (let i = passwordChars.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [passwordChars[i], passwordChars[j]] = [passwordChars[j], passwordChars[i]];
+            }
+            
+            // Προσθέτει # στην αρχή
+            return '#' + passwordChars.join('');
         };
 
         // Δημιούργησε το group password
-        const groupPassword = generateGroupPassword(groupName);
+        const groupPassword = generateGroupPassword();
 
         const { data, error } = await supabase
             .from('groups')
@@ -655,6 +677,7 @@ export const fetchGroups = async (): Promise<Group[]> => {
             members: g.members,
             isActive: g.is_active || false,
             groupPassword: g.group_password,
+            groupNumber: g.group_number || g.id, // Use group_number from DB or fallback to id
             createdAt: new Date(g.created_at),
             createdBy: g.creator_name || 'Unknown',
         }));
