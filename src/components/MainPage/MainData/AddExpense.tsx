@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useAppContext } from "../../../contexts/AppContext";
 import CustomButton from "../../Buttons/CustomButton";
 
 interface AddExpenseProps {
@@ -11,6 +12,7 @@ interface AddExpenseProps {
 };
 
 const AddExpense = ({onAddExpense}: AddExpenseProps) => {
+    const { selectedGroup } = useAppContext();
     const [amount,setAmount]= useState('');
     const [description, setDescription]= useState('');
     const [category, setCategory] = useState('');
@@ -35,6 +37,11 @@ const AddExpense = ({onAddExpense}: AddExpenseProps) => {
 
 
     const handleAddExpense = async () =>{
+        // Έλεγχος αν έχει επιλεγμένο group
+        if (!selectedGroup) {
+            alert('Παρακαλώ δημιουργήστε ή ενώστε σε ένα group πριν προσθέσετε έξοδα.');
+            return;
+        }
 
         if(
             category.length===0 || 
@@ -122,11 +129,20 @@ const AddExpense = ({onAddExpense}: AddExpenseProps) => {
                         />
                     </div>
                     
+                    {!selectedGroup && (
+                        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <p className="text-sm text-yellow-800">
+                                ⚠️ Παρακαλώ δημιουργήστε ή ενώστε σε ένα group για να μπορέσετε να προσθέσετε έξοδα.
+                            </p>
+                        </div>
+                    )}
+                    
                     <div className="flex justify-end mt-4">
                         <CustomButton  
                             color="blue"
                             size='md'
                             onClick={handleAddExpense}
+                            disabled={!selectedGroup}
                         >
                             + Add Expense
                         </CustomButton>
