@@ -1,8 +1,7 @@
 
 import { useState } from "react";
-import { useAppContext } from "../../../contexts/AppContext";
+import { useAppContext } from "../../context/AppContext";
 import CustomButton from "../../Buttons/CustomButton";
-import { fetchGroupSpecificData, upsertGroupSpecificData } from "../../../services/supabaseService";
 
 
 const GroupDetails = () => {
@@ -26,7 +25,7 @@ const GroupDetails = () => {
     };
 
     // Function για να αποθηκεύσεις τις αλλαγές
-    const handleSave = async () => {
+    const handleSave = () => {
         // Εδώ κάνεις validation
         if(!groupData.userName || groupData.userName.length === 0){
             alert('Please enter user name');
@@ -67,20 +66,7 @@ const GroupDetails = () => {
             return;
         }
 
-        // ✅ Αποθήκευση group-specific data αν υπάρχει selectedGroup
-        if (selectedGroup) {
-            const groupSpecificDataMap = await fetchGroupSpecificData();
-            groupSpecificDataMap[selectedGroup.id] = {
-                userName: groupData.userName,
-                nicknameUser: groupData.nicknameUser,
-                groupName: groupData.groupName,
-                activeUsers: groupData.activeUsers,
-                totalGroupExpenses: groupData.totalGroupExpenses,
-                totalPaid: groupData.totalPaid,
-                userExpenses: groupData.userExpenses,
-            };
-            await upsertGroupSpecificData(groupSpecificDataMap);
-        }
+        // και να στείλεις στο backend αν χρειάζεται
 
         updateGroupData(groupData);  // Αποθήκευσε όλα τα δεδομένα
         setIsEditMode(false);
@@ -216,11 +202,11 @@ const GroupDetails = () => {
                             )}
                         </div>
 
-                        {/* Group Password */}
+                        {/* Group Number - ΝΕΟ */}
                         <div>
-                            <h1 className="font-semibold">🔒 Group Password:</h1>
+                            <h1 className="font-semibold">🔢 Group Number:</h1>
                             <p className="text-gray-600">
-                                {selectedGroup?.groupPassword || 'N/A'}
+                                {selectedGroup?.groupNumber || 'N/A'}
                             </p>
                         </div>
 
