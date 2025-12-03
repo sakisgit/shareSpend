@@ -84,7 +84,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
             const newUserId = session?.user?.id || null;
             
             // Αν ο user έχει αλλάξει (όχι απλά login του ίδιου user), καθάρισε τα groupData
-            if (currentUserIdRef.current !== null && currentUserIdRef.current !== newUserId) {
+            if (currentUserIdRef.current !== null && currentUserIdRef.current !== newUserId && newUserId !== null) {
                 // Ενημέρωσε το currentUserIdRef ΠΡΙΝ καθαρίσεις
                 currentUserIdRef.current = newUserId;
                 
@@ -106,7 +106,7 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                 setSelectedGroup(null);
                 
                 // Φόρτωσε τα δεδομένα του νέου user
-                if (newUserId && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+                if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                     setLoading(true);
                     try {
                         const loadedGroups = await fetchGroups();
@@ -187,9 +187,103 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
                         setLoading(false);
                     }
                 }
-            } else if (newUserId && currentUserIdRef.current === null) {
-                // Πρώτη φορά login - το mount useEffect θα φορτώσει τα δεδομένα
+            } else if (newUserId && currentUserIdRef.current === null && event === 'SIGNED_IN') {
+                // Πρώτη φορά login ή re-login (μετά logout) - φόρτωσε τα δεδομένα
                 currentUserIdRef.current = newUserId;
+                setLoading(true);
+                try {
+                    const loadedGroups = await fetchGroups();
+                    setGroups(loadedGroups);
+                    
+                    const loadedGroupData = await fetchGroupData();
+                    
+                    // Φόρτωσε userName/nicknameUser πάντα (ανά user)
+                    if (loadedGroupData) {
+                        if (loadedGroupData.groupName) {
+                            // Αν έχει group, φόρτωσε και expenses/totals
+                            const matchingGroup = loadedGroups.find((g: Group) => g.name === loadedGroupData.groupName);
+                            if (matchingGroup) {
+                                setSelectedGroup(matchingGroup);
+                                const groupExpenses = await fetchExpensesByGroup(matchingGroup.id);
+                                setExpenses(groupExpenses);
+                                
+                                const totals = groupExpenses.reduce((acc: { totalGroupExpenses: number; userExpenses: number }, exp: Expense) => {
+                                    const amount = parseFloat(exp.amount.replace(',', '.')) || 0;
+                                    const currentUserName = loadedGroupData.nicknameUser || loadedGroupData.userName || '';
+                                    return {
+                                        totalGroupExpenses: acc.totalGroupExpenses + amount,
+                                        userExpenses: acc.userExpenses + (exp.userName === currentUserName ? amount : 0)
+                                    };
+                                }, { totalGroupExpenses: 0, userExpenses: 0 });
+                                
+                                setGroupData({
+                                    userName: loadedGroupData.userName || '',
+                                    nicknameUser: loadedGroupData.nicknameUser || '',
+                                    groupName: loadedGroupData.groupName,
+                                    activeUsers: loadedGroupData.activeUsers,
+                                    totalGroupExpenses: totals.totalGroupExpenses,
+                                    totalPaid: loadedGroupData.totalPaid || 0.00,
+                                    userExpenses: totals.userExpenses
+                                });
+                            } else {
+                                // Αν το group δεν υπάρχει πια, φόρτωσε μόνο userName/nicknameUser
+                                setGroupData({
+                                    userName: loadedGroupData.userName || '',
+                                    nicknameUser: loadedGroupData.nicknameUser || '',
+                                    groupName: '',
+                                    activeUsers: 10,
+                                    totalGroupExpenses: 0.00,
+                                    totalPaid: 0.00,
+                                    userExpenses: 0.00
+                                });
+                                setExpenses([]);
+                            }
+                        } else {
+                            // Αν δεν έχει group, φόρτωσε μόνο userName/nicknameUser
+                            setGroupData({
+                                userName: loadedGroupData.userName || '',
+                                nicknameUser: loadedGroupData.nicknameUser || '',
+                                groupName: '',
+                                activeUsers: 10,
+                                totalGroupExpenses: 0.00,
+                                totalPaid: 0.00,
+                                userExpenses: 0.00
+                            });
+                            setExpenses([]);
+                        }
+                    } else {
+                        // Αν δεν υπάρχει groupData, ξεκίνα με κενά
+                        setGroupData({
+                            userName: '',
+                            nicknameUser: '',
+                            groupName: '',
+                            activeUsers: 10,
+                            totalGroupExpenses: 0.00,
+                            totalPaid: 0.00,
+                            userExpenses: 0.00
+                        });
+                        setExpenses([]);
+                    }
+                } catch (error) {
+                    console.error('Error loading data after re-login:', error);
+                } finally {
+                    setLoading(false);
+                }
+            } else if (event === 'SIGNED_OUT') {
+                // Καθάρισε όλα όταν κάνει logout
+                currentUserIdRef.current = null;
+                setGroupData({
+                    userName: '',
+                    nicknameUser: '',
+                    groupName: '',
+                    activeUsers: 10,
+                    totalGroupExpenses: 0.00,
+                    totalPaid: 0.00,
+                    userExpenses: 0.00
+                });
+                setExpenses([]);
+                setGroups([]);
+                setSelectedGroup(null);
             }
         });
 
@@ -414,9 +508,14 @@ const AppContextProvider = ({children}: {children: React.ReactNode}) => {
         if (!loading) {
             const saveGroupData = async () => {
                 // Αποθήκευσε ακόμα και αν δεν έχει userName (για nicknameUser)
-                // Αλλά μην αποθηκεύσεις αν είναι κενό (initial state)
+                // Αποθήκευσε πάντα αν έχει userName ή nicknameUser (ακόμα και αν δεν έχει group)
                 if (groupData.userName || groupData.nicknameUser || groupData.groupName) {
-                    await upsertGroupData(groupData);
+                    try {
+                        await upsertGroupData(groupData);
+                        console.log('Auto-saved groupData:', { userName: groupData.userName, nicknameUser: groupData.nicknameUser, groupName: groupData.groupName });
+                    } catch (error) {
+                        console.error('Error auto-saving groupData:', error);
+                    }
                 }
             };
             
