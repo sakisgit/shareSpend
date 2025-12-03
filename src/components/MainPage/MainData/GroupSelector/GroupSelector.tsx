@@ -10,6 +10,7 @@ const GroupSelector = () => {
     const {
         groups,
         selectedGroup,
+        groupData,
         createNewGroup,
         selectGroup,
         loadGroups,
@@ -67,7 +68,14 @@ const GroupSelector = () => {
                     <CustomButton
                         color="green"
                         size="sm"
-                        onClick={() => setShowCreateModal(true)}
+                        onClick={() => {
+                            // Έλεγχος για name και nickname πριν ανοίξει το modal
+                            if (!groupData.userName && !groupData.nicknameUser) {
+                                alert('Παρακαλώ εισάγετε Name ή Nickname πριν δημιουργήσετε ένα group.');
+                                return;
+                            }
+                            setShowCreateModal(true);
+                        }}
                         disabled={groups.length >= MAX_GROUPS}
                     >
                         + Create Group
