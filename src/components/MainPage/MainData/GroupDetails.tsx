@@ -12,7 +12,8 @@ const GroupDetails = () => {
         groupData, 
         selectedGroup,
         updateGroupData,
-        resetAll
+        resetAll,
+        groups
     } = useAppContext();
 
     const toggleVisibility = () => {
@@ -130,6 +131,10 @@ const GroupDetails = () => {
         }; 
     };
 
+    // Έλεγχος αν υπάρχει valid group
+    const hasValidGroup = selectedGroup !== null && groupData.groupName !== '' && 
+                          groups.some(g => g.id === selectedGroup.id);
+
   return (
     <div className="container mx-auto p-6">
 
@@ -194,8 +199,9 @@ const GroupDetails = () => {
                                     type="text"
                                     value={groupData.groupName}
                                     onChange={(e)=> handleInputChange('groupName',e.target.value)}
-                                    className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                    className={`w-full border border-gray-300 rounded-lg p-2 mt-1 ${!hasValidGroup ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                                     placeholder="Team Alpha"
+                                    disabled={!hasValidGroup}
                                 />
                             ) : (
                                 <p className="text-gray-600">{groupData.groupName || 'No group selected'}</p>
@@ -220,8 +226,9 @@ const GroupDetails = () => {
                                     max='10'
                                     value={groupData.activeUsers}
                                     onChange={(e)=> handleInputChange('activeUsers',e.target.value)}
-                                    className="w-full border border-gray-300 rounded-lg p-2 mt-1"
+                                    className={`w-full border border-gray-300 rounded-lg p-2 mt-1 ${!hasValidGroup ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                                     placeholder="10"
+                                    disabled={!hasValidGroup}
                                 />
                             ) : (
                                 <p className="text-gray-600">{groupData.activeUsers}</p>
